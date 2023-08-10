@@ -5,7 +5,7 @@ This repo will create kubernetes cluster with some tools:
 - `kubeadm`         The official tool to initial kubernetes cluster
 - `kubelet`         The kubelet is the primary "node agent" that runs on each node
 - `containerd.io`   The container runtime
-- `kubectl`         The official for interacting with the cluster
+- `kubectl`         The official tool for interacting with the cluster
 - `haproxy`         TCP loadbalancing layer 4 for masters
 - `nginx`           Loadbalancing for workers
 - `crictl`          The command-line interface tool for inspecting and debug container runtimes and applications on a Kubernetes node
