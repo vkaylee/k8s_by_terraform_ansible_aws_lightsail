@@ -1,0 +1,29 @@
+- name: Get join command
+  hosts: master_1
+  tasks:
+    - name: Get control plane cerfiticate key from api
+      become: true
+      ansible.builtin.shell:
+        cmd: |
+          kubeadm init phase upload-certs --upload-certs > cerfiticate.txt
+          grep -vw -e certificate -e Namespace cerfiticate.txt > cerfiticate_key.txt
+          rm cerfiticate.txt
+          cat cerfiticate_key.txt
+        chdir: $HOME
+      register: kubernetes_cerfiticate_key
+      changed_when: false
+
+    - name: Get the token for joining the worker nodes
+      become: true
+      ansible.builtin.command: kubeadm token create  --print-join-command
+      register: kubernetes_worker_join_command
+      failed_when: kubernetes_worker_join_command.rc != 0 # <- Uses the return code to define when the task has changed.
+      changed_when: false
+
+    - name: Print debug kubernetes_join_command for the worker nodes
+      ansible.builtin.debug:
+        msg: "{{ kubernetes_worker_join_command.stdout }}"
+
+    - name: Print debug kubernetes_join_command for the control plane nodes
+      ansible.builtin.debug:
+        msg: "{{ kubernetes_worker_join_command.stdout }} --control-plane --certificate-key {{ kubernetes_cerfiticate_key.stdout_lines[0] }}"

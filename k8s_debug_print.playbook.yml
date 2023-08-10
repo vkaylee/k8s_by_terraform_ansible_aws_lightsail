@@ -1,0 +1,17 @@
+- name: Print debug cluster info
+  hosts: masters
+  tasks:
+    - name: Sleep for 30 seconds and continue with play
+      ansible.builtin.wait_for:
+        timeout: 30
+      delegate_to: localhost
+
+    - name: Get info nodes
+      ansible.builtin.command: kubectl get nodes -o wide
+      register: kubernetes_get_nodes_command
+      failed_when: kubernetes_get_nodes_command.rc != 0
+      changed_when: false
+
+    - name: Print debug kubernetes_get_nodes_command
+      ansible.builtin.debug:
+        msg: "{{ kubernetes_get_nodes_command.stdout_lines }}"

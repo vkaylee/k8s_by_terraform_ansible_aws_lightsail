@@ -1,0 +1,19 @@
+- name: Install crictl to debug pods and containers
+  hosts: masters, workers
+  vars:
+    crictl_version: v1.27.0
+  tasks:
+    - name: Download and install the package
+      become: true
+      ansible.builtin.unarchive:
+        remote_src: true
+        src: https://github.com/kubernetes-sigs/cri-tools/releases/download/{{ crictl_version }}/crictl-{{ crictl_version }}-linux-amd64.tar.gz
+        dest: /usr/local/bin
+        keep_newer: false
+
+    - name: Upload /etc/crictl.yaml
+      become: true
+      ansible.builtin.template:
+        dest: /etc/crictl.yaml
+        src: etc.crictl_containerd.yml
+        mode: a+r

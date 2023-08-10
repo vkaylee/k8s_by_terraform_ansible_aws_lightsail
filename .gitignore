@@ -1,0 +1,12 @@
+.terraform
+.vscode
+.idea
+.env.myenv
+.terraform.*
+terraform.tfstate
+terraform.tfstate.backup
+# Personal files
+ansible.inventory.cfg
+master.haproxy.cfg
+worker.nginx.conf
+ssh.sh

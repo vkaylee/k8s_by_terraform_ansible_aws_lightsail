@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+fileDir="$(dirname $0)"
+# Load lib for selection feature
+source "$fileDir/shell_libs/bash_selection_lib.sh"
+
+selected_item=0
+run_menu "$selected_item" ${ myarray }
+menu_result="$?"
+
+echo
+
+menu_item="$(show_menu_item "$menu_result" ${ myarray })"
+
+echo "You choose $menu_item"
+user_and_host=$(echo $menu_item | grep -oP "\w+@\d+\.\d+\.\d+\.\d+$")
+
+echo "Do ssh $user_and_host"
+ssh -i ${ sshkeypath } $user_and_host

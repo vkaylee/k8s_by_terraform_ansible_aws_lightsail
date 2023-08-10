@@ -1,0 +1,19 @@
+# https://docs.ansible.com/ansible/latest/reference_appendices/special_variables.html
+
+- name: Install all components for every node
+  ansible.builtin.import_playbook: k8s_components_installer.playbook.yml
+
+- name: Init cluster
+  ansible.builtin.import_playbook: k8s_cluster_initial.playbook.yml
+
+- name: Masters join
+  ansible.builtin.import_playbook: k8s_join_masters.playbook.yml
+
+- name: Workers join
+  ansible.builtin.import_playbook: k8s_join_workers.playbook.yml
+
+- name: Install crictl tool to query pods and containers
+  ansible.builtin.import_playbook: k8s_crictl_component.playbook.yml
+
+- name: Print some debug info
+  ansible.builtin.import_playbook: k8s_debug_print.playbook.yml

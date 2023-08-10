@@ -1,0 +1,65 @@
+# TCP	Inbound	6443	Kubernetes API server	All
+# TCP	Inbound	2379-2380	etcd server client API	kube-apiserver, etcd
+# TCP	Inbound	10250	Kubelet API	Self, Control plane
+# TCP	Inbound	10259	kube-scheduler	Self
+# TCP	Inbound	10257	kube-controller-manager	Self
+
+# TCP	Inbound	10250	Kubelet API	Self, Control plane
+# TCP	Inbound	30000-32767	NodePort Services†	All
+
+- name: Initialize the first control plane
+  hosts: master_1
+  tasks:
+    - name: Check kubelet info for sure the current node is not in any cluster
+      ansible.builtin.stat:
+        path: "/etc/kubernetes/kubelet.conf"
+      register: kubernetes_kubelet_conf
+
+    - name: Check if port 6443 is listening
+      ansible.builtin.wait_for:
+        host: 0.0.0.0
+        port: 6443
+        timeout: 1
+        msg: "Timeout waiting for port 6443 to respond"
+      register: portcheck6443
+      ignore_errors: true
+
+    - name: Initialize the cluster
+      become: true
+      ansible.builtin.command:
+        cmd: kubeadm init --pod-network-cidr=10.244.0.0/16 --control-plane-endpoint "{{ hostvars.master_lb_1.private_ip }}:6443" --upload-certs
+        chdir: $HOME
+      register: initial_cluster_output
+      when:
+        - portcheck6443.failed
+        - not kubernetes_kubelet_conf.stat.exists
+      failed_when: initial_cluster_output.rc != 0
+      changed_when: false
+
+    - name: Get stat of /etc/kubernetes/admin.conf
+      ansible.builtin.stat:
+        path: "/etc/kubernetes/admin.conf"
+      register: kubernetes_admin_conf
+
+    - name: Mkdir .kube directory
+      ansible.builtin.file:
+        path: "$HOME/.kube"
+        state: "directory"
+        mode: "0755"
+
+    - name: Copies admin.conf to user's kube config
+      become: true
+      # become_user: "{{ hostvars[inventory_hostname].ansible_user }}"
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ ansible_env.HOME }}/.kube/config"
+        mode: a+r
+        remote_src: true
+      when: kubernetes_admin_conf.stat.exists
+
+    - name: Install Pod network
+      ansible.builtin.command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+      register: kubectl_install_calico # <- Registers the command output.
+      changed_when: kubectl_install_calico.rc != 0 # <- Uses the return code to define when the task has changed.
+      args:
+        chdir: $HOME

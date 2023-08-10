@@ -1,0 +1,282 @@
+- name: Install some common packages to all hosts
+  hosts: masters, master_lbs, workers, worker_lbs
+  tasks:
+    - name: Install list of common packages
+      become: true
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: true
+      with_items:
+        - curl
+        - ca-certificates
+        - gnupg
+        - apt-transport-https
+        - netcat # Tool to check ports
+        - htop
+
+- name: Install Master loadbalancer
+  hosts: master_lbs
+  handlers:
+    - name: Reload haproxy
+      become: true
+      ansible.builtin.service:
+        name: haproxy
+        state: reloaded
+    - name: Restart rsyslog
+      become: true
+      ansible.builtin.service:
+        name: rsyslog
+        state: restarted
+
+  tasks:
+    - name: Install rsyslog
+      become: true
+      ansible.builtin.apt:
+        name: rsyslog
+        state: present
+        update_cache: true
+
+    - name: Install haproxy
+      become: true
+      ansible.builtin.apt:
+        name: haproxy
+        state: present
+        update_cache: true
+
+    - name: Install keepalived
+      become: true
+      ansible.builtin.apt:
+        name: keepalived
+        state: present
+        update_cache: true
+
+    - name: Install psmisc
+      become: true
+      ansible.builtin.apt:
+        name: psmisc
+        state: present
+        update_cache: true
+
+    - name: Start rsyslog
+      become: true
+      ansible.builtin.service:
+        name: rsyslog
+        state: started
+        enabled: true
+
+    - name: Upload haproxy.rsyslog.conf
+      become: true
+      ansible.builtin.template:
+        dest: /etc/rsyslog.d/haproxy.rsyslog.conf
+        src: haproxy.rsyslog.conf
+        mode: a+r
+      notify:
+        - Restart rsyslog
+
+    - name: Start haproxy
+      become: true
+      ansible.builtin.service:
+        name: haproxy
+        state: started
+        enabled: true
+
+    - name: Upload haproxy.cfg
+      become: true
+      ansible.builtin.template:
+        dest: /etc/haproxy/haproxy.cfg
+        src: master.haproxy.cfg
+        mode: a+r
+      notify:
+        - Reload haproxy
+
+- name: Install kubeadm, kubelet for all masters and workers
+  hosts: masters, workers
+  tasks:
+    - name: Add google apt key
+      become: true
+      ansible.builtin.get_url:
+        url: "https://packages.cloud.google.com/apt/doc/apt-key.gpg"
+        dest: /etc/apt/trusted.gpg.d/kubernetes.asc
+        mode: a+r
+        force: true
+
+    - name: Add K8s Source
+      become: true
+      ansible.builtin.apt_repository:
+        repo: deb [signed-by=/etc/apt/trusted.gpg.d/kubernetes.asc] https://apt.kubernetes.io/ kubernetes-xenial main
+        state: present
+        filename: kubernetes
+
+    - name: Apt install
+      become: true
+      ansible.builtin.apt:
+        name: "{{ item.name }}={{ item.version }}"
+        state: present
+        update_cache: true
+        allow_change_held_packages: true
+        allow_downgrade: false
+      loop:
+        - { name: 'kubelet', version: '1.27.*' }
+        - { name: 'kubeadm', version: '1.27.*' }
+
+    - name: Hold
+      become: true
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubelet
+        - kubeadm
+
+- name: Install kubectl on masters
+  hosts: masters
+  tasks:
+    - name: Apt install
+      become: true
+      ansible.builtin.apt:
+        name: "{{ item.name }}={{ item.version }}"
+        state: present
+        update_cache: true
+        allow_change_held_packages: true
+        allow_downgrade: false
+      loop:
+        - { name: 'kubectl', version: '1.27.*' }
+
+    - name: Hold
+      become: true
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubectl
+
+- name: Install k8s
+  hosts: masters, workers
+  handlers:
+    - name: Restart containerd
+      become: true
+      ansible.builtin.service:
+        name: containerd
+        state: restarted
+    - name: Restart kubelet
+      become: true
+      ansible.builtin.service:
+        name: kubelet
+        state: restarted
+    - name: Apply sysctl settings
+      become: true
+      ansible.builtin.command: sysctl --system
+      register: sysctl_output # <- Registers the command output.
+      changed_when: sysctl_output.rc != 0 # <- Uses the return code to define when the task has changed.
+  tasks:
+    - name: Add Docker’s official GPG key
+      become: true
+      ansible.builtin.get_url:
+        url: "https://download.docker.com/linux/debian/gpg"
+        dest: /etc/apt/trusted.gpg.d/debian_docker.asc
+        mode: a+r
+        force: true
+
+    - name: Add docker Source
+      become: true
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/etc/apt/trusted.gpg.d/debian_docker.asc] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+        state: present
+        filename: docker
+    - name: Install containerd.io
+      become: true
+      ansible.builtin.apt:
+        name: containerd.io=1.6.*
+        state: present
+        update_cache: true
+      notify:
+        - Restart kubelet
+
+    # It's just a workaround to let kubeadm works
+    # - name: Remove /etc/containerd/config.toml
+    #   ansible.builtin.file:
+    #     state: absent
+    #     path: /etc/containerd/config.toml
+    #   notify:
+    #     - Restart containerd
+    - name: Upload /etc/containerd/config.toml
+      become: true
+      ansible.builtin.template:
+        dest: /etc/containerd/config.toml
+        src: etc.containerd.config.toml
+        mode: a+r
+      notify:
+        - Restart containerd
+    # - name: Generate default containerd configuration
+    #   shell: containerd config default > /etc/containerd/config.toml
+    #   notify:
+    #     - Restart containerd
+
+    - name: Add overlay, br_netfilter module to kernel
+      become: true
+      community.general.modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - overlay
+        - br_netfilter
+
+    - name: Get stat of /etc/sysctl.d/99-kubernetes-cri.conf
+      ansible.builtin.stat:
+        path: "/etc/sysctl.d/99-kubernetes-cri.conf"
+      register: create_kubernetes_cri_conf_status
+
+    - name: Touch /etc/sysctl.d/99-kubernetes-cri.conf
+      become: true
+      ansible.builtin.file:
+        path: "/etc/sysctl.d/99-kubernetes-cri.conf"
+        state: "touch"
+        mode: a+r
+      when: not create_kubernetes_cri_conf_status.stat.exists
+
+    - name: Enable some configurations for containerd
+      become: true
+      ansible.posix.sysctl:
+        name: "{{ item }}"
+        value: '1'
+        sysctl_file: /etc/sysctl.d/99-kubernetes-cri.conf
+        reload: true
+      loop:
+        - net.bridge.bridge-nf-call-iptables
+        - net.ipv4.ip_forward
+        - net.bridge.bridge-nf-call-ip6tables
+      notify:
+        - Apply sysctl settings
+        - Restart containerd
+
+    - name: Disable swap
+      become: true
+      ansible.builtin.shell: |
+        swapoff -a
+        sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+      register: my_output # <- Registers the command output.
+      changed_when: my_output.rc != 0 # <- Uses the return code to define when the task has changed.
+
+    - name: Get stat of /etc/modules-load.d/containerd.conf
+      ansible.builtin.stat:
+        path: "/etc/modules-load.d/containerd.conf"
+      register: create_containerd_conf_status
+
+    - name: Touch /etc/modules-load.d/containerd.conf
+      become: true
+      ansible.builtin.file:
+        path: "/etc/modules-load.d/containerd.conf"
+        state: "touch"
+        mode: a+r
+      when: not create_containerd_conf_status.stat.exists
+
+    - name: Add conf for containerd
+      become: true
+      ansible.builtin.blockinfile:
+        path: "/etc/modules-load.d/containerd.conf"
+        block: |
+          overlay
+          br_netfilter
+      notify:
+        - Restart containerd

@@ -1,0 +1,23 @@
+- name: Get join command
+  ansible.builtin.import_playbook: k8s_join_command.playbook.yml
+
+- name: Other worker nodes joining
+  hosts: workers
+  tasks:
+    - name: Check kubelet info for sure the current node is not in any cluster
+      ansible.builtin.stat:
+        path: "/etc/kubernetes/kubelet.conf"
+      register: kubernetes_kubelet_conf
+      changed_when: false
+
+    - name: Run command to join
+      become: true
+      ansible.builtin.command:
+        cmd: "{{ hostvars.master_1.kubernetes_worker_join_command.stdout_lines[0] }}"
+        chdir: $HOME
+      when:
+        - not kubernetes_kubelet_conf.stat.exists
+        - hostvars['master_1']['kubernetes_worker_join_command'] is defined
+      register: kubernetes_worker_join
+      failed_when: kubernetes_worker_join.rc != 0
+      changed_when: kubernetes_worker_join.rc == 0
