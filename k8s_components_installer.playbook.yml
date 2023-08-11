@@ -44,6 +44,34 @@
         state: present
         update_cache: true
 
+    # The default behaviour of haproxy will create a default haproxy configuration for rsyslog after installing haproxy
+    # That's why we must upload rsyslog configuration for haproxy after installing haproxy
+    - name: Detect Haproxy rsyslog configuration path
+      block:
+        - name: Check current Haproxy rsyslog configuration file
+          ansible.builtin.shell:
+            cmd: ls /etc/rsyslog.d | grep -P '\d+-haproxy'
+          register: detect_rsyslog_haproxy_config_file
+          ignore_errors: true
+          changed_when: false
+        - name: Set fact - Haproxy rsyslog configuration file
+          ansible.builtin.set_fact:
+            rsyslog_haproxy_config_file: "{{
+                detect_rsyslog_haproxy_config_file.stdout_lines[0]
+                if detect_rsyslog_haproxy_config_file.stdout_lines
+                else 'haproxy.conf'
+              }}"
+
+    - name: Upload haproxy.rsyslog.conf
+      become: true
+      ansible.builtin.template:
+        dest: "/etc/rsyslog.d/{{ rsyslog_haproxy_config_file }}"
+        src: haproxy.rsyslog.conf
+        mode: a+r
+      when: rsyslog_haproxy_config_file is defined
+      notify:
+        - Restart rsyslog
+
     - name: Install keepalived
       become: true
       ansible.builtin.apt:
@@ -64,15 +92,6 @@
         name: rsyslog
         state: started
         enabled: true
-
-    - name: Upload haproxy.rsyslog.conf
-      become: true
-      ansible.builtin.template:
-        dest: /etc/rsyslog.d/haproxy.rsyslog.conf
-        src: haproxy.rsyslog.conf
-        mode: a+r
-      notify:
-        - Restart rsyslog
 
     - name: Start haproxy
       become: true
