@@ -59,6 +59,19 @@ Example output
     ansible-playbook k8s_crictl_component.playbook.yml
 ```
 
+- Kubeconfig path, override in kubectl by option `--kubeconfig` or export `KUBECONFIG` environment
+    - In masters: `~/.kube/config` or `/etc/kubernetes/admin.conf`
+    - In local: `<this working dir>/kubeconfig` (This file is automatically created by ansible)
+
+For example:
+```shell
+    kubectl --kubeconfig kubeconfig
+```
+Combine with getting list pods
+```shell
+    kubectl --kubeconfig kubeconfig get pod -A
+```
+
 - Show nodes
 ```shell
     kubectl get node -o wide
