@@ -30,8 +30,10 @@
         argv:
           - kubeadm
           - init
-          - --pod-network-cidr=10.244.0.0/16
           - "--control-plane-endpoint={{ hostvars.master_lb_1.private_ip }}:6443"
+          - --apiserver-bind-port=6443
+          - --cri-socket=/run/containerd/containerd.sock
+          - --service-dns-domain=cluster.internal
           - --upload-certs
           - "--apiserver-cert-extra-sans={{ hostvars.master_lb_1.ansible_host }}"
           # If we have never issued in the initialize state, we can manually do following
@@ -39,6 +41,15 @@
           # sudo rm /etc/kubernetes/pki/apiserver.*
           # generate new certificates
           # sudo kubeadm init phase certs apiserver --apiserver-cert-extra-sans=localhost,127.0.0.1,54.179.193.197
+          ##############################################################################
+          # Network
+          # We should design the CIDR range that suites with our need.
+          # It will be better when we control multiple clusters and want to connect each other
+          # The setting below is just maximized the size of network
+          # 10.128.0.0/10: 10.128.0.0 -> 10.191.255.255, 4.194.304 pod ips. 16384 nodes.
+          - --pod-network-cidr=10.128.0.0/10
+          # 10.16.0.0/12: 10.16.0.0 -> 10.31.255.255, 1.048.576 services
+          - --service-cidr=10.16.0.0/12
         chdir: $HOME
       register: initial_cluster_output
       when:
