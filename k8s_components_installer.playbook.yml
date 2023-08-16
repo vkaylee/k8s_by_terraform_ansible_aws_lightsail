@@ -112,18 +112,29 @@
 - name: Install kubeadm, kubelet for all masters and workers
   hosts: masters, workers
   tasks:
+    # https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
+    - name: Creates /etc/apt/keyrings directory
+      become: true
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: u+r
+
     - name: Add google apt key
       become: true
       ansible.builtin.get_url:
-        url: "https://packages.cloud.google.com/apt/doc/apt-key.gpg"
-        dest: /etc/apt/trusted.gpg.d/kubernetes.asc
+        url: "https://pkgs.k8s.io/core:/stable:/v1.27/deb/Release.key"
+        # Use extension .asc to trick "gpg --dearmor"
+        dest: /etc/apt/keyrings/kubernetes-v1.27-apt-keyring.asc
         mode: a+r
         force: true
 
     - name: Add K8s Source
       become: true
       ansible.builtin.apt_repository:
-        repo: deb [signed-by=/etc/apt/trusted.gpg.d/kubernetes.asc] https://apt.kubernetes.io/ kubernetes-xenial main
+        # The repo "https://apt.kubernetes.io/ kubernetes-xenial main" always provide the latest version
+        # Use the repo "https://pkgs.k8s.io/core:/stable:/v1.27/deb/ /" instead
+        repo: deb [signed-by=/etc/apt/keyrings/kubernetes-v1.27-apt-keyring.asc] https://pkgs.k8s.io/core:/stable:/v1.27/deb/ /
         state: present
         filename: kubernetes
 
@@ -136,8 +147,8 @@
         allow_change_held_packages: true
         allow_downgrade: false
       loop:
-        - { name: 'kubelet', version: '1.27.*' }
-        - { name: 'kubeadm', version: '1.27.*' }
+        - { name: 'kubelet', version: '1.27.4*' }
+        - { name: 'kubeadm', version: '1.27.4*' }
 
     - name: Hold
       become: true
@@ -160,7 +171,7 @@
         allow_change_held_packages: true
         allow_downgrade: false
       loop:
-        - { name: 'kubectl', version: '1.27.*' }
+        - { name: 'kubectl', version: '1.27.4*' }
 
     - name: Hold
       become: true
