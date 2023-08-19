@@ -111,8 +111,24 @@
       notify:
         - Reload haproxy
 
-- name: Install kubeadm, kubelet for all masters and workers
+- name: Install components on masters and workers
   hosts: masters, workers
+  handlers:
+    - name: Restart containerd
+      become: true
+      ansible.builtin.service:
+        name: containerd
+        state: restarted
+    - name: Restart kubelet
+      become: true
+      ansible.builtin.service:
+        name: kubelet
+        state: restarted
+    - name: Apply sysctl settings
+      become: true
+      ansible.builtin.command: sysctl --system
+      register: sysctl_output # <- Registers the command output.
+      changed_when: sysctl_output.rc != 0 # <- Uses the return code to define when the task has changed.
   tasks:
     # https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
     - name: Creates /etc/apt/keyrings directory
@@ -161,25 +177,6 @@
         - kubelet
         - kubeadm
 
-- name: Install k8s
-  hosts: masters, workers
-  handlers:
-    - name: Restart containerd
-      become: true
-      ansible.builtin.service:
-        name: containerd
-        state: restarted
-    - name: Restart kubelet
-      become: true
-      ansible.builtin.service:
-        name: kubelet
-        state: restarted
-    - name: Apply sysctl settings
-      become: true
-      ansible.builtin.command: sysctl --system
-      register: sysctl_output # <- Registers the command output.
-      changed_when: sysctl_output.rc != 0 # <- Uses the return code to define when the task has changed.
-  tasks:
     - name: Add Docker’s official GPG key
       become: true
       ansible.builtin.get_url:
