@@ -268,14 +268,16 @@
     - name: Enable some configurations for containerd
       become: true
       ansible.posix.sysctl:
-        name: "{{ item }}"
-        value: '1'
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
         sysctl_file: /etc/sysctl.d/99-kubernetes-cri.conf
         reload: true
       loop:
-        - net.bridge.bridge-nf-call-iptables
-        - net.ipv4.ip_forward
-        - net.bridge.bridge-nf-call-ip6tables
+        - { key: 'net.ipv4.ip_forward', value: '1' }
+        - { key: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+        - { key: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+        # Apply Dual-stack support
+        - { key: 'net.ipv6.conf.all.forwarding', value: '1' }
       notify:
         - Apply sysctl settings
         - Restart containerd
