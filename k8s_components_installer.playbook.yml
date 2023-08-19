@@ -283,6 +283,11 @@
 - name: Install some components on masters
   hosts: masters
   tasks:
+    # This one is required for ansible module kubernetes.core.k8s
+    - name: Install kubernetes python package on version >=12.0.0
+      ansible.builtin.pip:
+        name: kubernetes>=12.0.0
+
     - name: Install helm
       become: true
       ansible.builtin.unarchive:
