@@ -161,28 +161,6 @@
         - kubelet
         - kubeadm
 
-- name: Install kubectl on masters
-  hosts: masters
-  tasks:
-    - name: Apt install
-      become: true
-      ansible.builtin.apt:
-        name: "{{ item.name }}={{ item.version }}"
-        state: present
-        update_cache: true
-        allow_change_held_packages: true
-        allow_downgrade: false
-      loop:
-        - { name: 'kubectl', version: '1.27.4*' }
-
-    - name: Hold
-      become: true
-      ansible.builtin.dpkg_selections:
-        name: "{{ item }}"
-        selection: hold
-      loop:
-        - kubectl
-
 - name: Install k8s
   hosts: masters, workers
   handlers:
@@ -320,3 +298,22 @@
         remote_src: true
       args:
         creates: /usr/local/bin/helm
+
+    - name: Apt install kubectl
+      become: true
+      ansible.builtin.apt:
+        name: "{{ item.name }}={{ item.version }}"
+        state: present
+        update_cache: true
+        allow_change_held_packages: true
+        allow_downgrade: false
+      loop:
+        - { name: 'kubectl', version: '1.27.4*' }
+
+        - name: Hold
+          become: true
+          ansible.builtin.dpkg_selections:
+            name: "{{ item }}"
+            selection: hold
+          loop:
+            - kubectl
