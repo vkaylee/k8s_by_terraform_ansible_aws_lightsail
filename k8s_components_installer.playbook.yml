@@ -310,10 +310,10 @@
       loop:
         - { name: 'kubectl', version: '1.27.4*' }
 
-        - name: Hold
-          become: true
-          ansible.builtin.dpkg_selections:
-            name: "{{ item }}"
-            selection: hold
-          loop:
-            - kubectl
+    - name: Hold
+      become: true
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubectl
