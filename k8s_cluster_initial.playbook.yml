@@ -9,6 +9,21 @@
 
 - name: Initialize the first control plane
   hosts: master_1
+  vars:
+    # 10.128.0.0/10: 10.128.0.0 -> 10.191.255.255, 4.194.304 pod ips. 16384 nodes.
+    # Apply Dual-stack support.
+    # Calculate network size by https://www.ipaddressguide.com/ipv6-cidr
+    pod_network_cidr_v4: 10.128.0.0/10
+    cilium_pod_network_cidr_v4: "{{ pod_network_cidr_v4 }}"
+    # 2001:db8:42:0::/56: 2001:0DB8:0042:0000:0000:0000:0000:0000 -> 2001:0DB8:0042:00FF:FFFF:FFFF:FFFF:FFFF
+    # 4.722.366.482.869.645.213.696 pod ips.
+    pod_network_cidr_v6: 2001:db8:42:0::/56
+    # 2001:db8:42:0::/106: 2001:0DB8:0042:0000:0000:0000:0000:0000 -> 2001:0DB8:0042:0000:0000:0000:003F:FFFF, 4.194.304 pod ips. 16384 nodes.
+    cilium_pod_network_cidr_v6: 2001:db8:42:0::/106
+    # 10.16.0.0/12: 10.16.0.0 -> 10.31.255.255, 1.048.576 services
+    service_cidr_v4: 10.16.0.0/12
+    # 2001:db8:42:1::/108: 2001:0DB8:0042:0001:0000:0000:0000:0000 -> 2001:0DB8:0042:0001:0000:0000:000F:FFFF, 1.048.576 services
+    service_cidr_v6: 2001:db8:42:1::/112
   tasks:
     - name: Check kubelet info for sure the current node is not in any cluster
       ansible.builtin.stat:
@@ -30,12 +45,15 @@
         argv:
           - kubeadm
           - init
-          - "--control-plane-endpoint={{ hostvars.master_lb_1.private_ip }}:6443"
+          - --control-plane-endpoint={{ hostvars.master_lb_1.private_ip }}:6443
           - --apiserver-bind-port=6443
-          - --cri-socket=/run/containerd/containerd.sock
+          - --cri-socket=unix:///var/run/containerd/containerd.sock
           - --service-dns-domain=cluster.internal
           - --upload-certs
-          - "--apiserver-cert-extra-sans={{ hostvars.master_lb_1.ansible_host }}"
+          - --apiserver-cert-extra-sans={{ hostvars.master_lb_1.ansible_host }}
+          # If you want to use Cilium’s kube-proxy replacement, kubeadm needs to skip the kube-proxy deployment phase
+          # https://docs.cilium.io/en/stable/installation/k8s-install-kubeadm/#create-the-cluster
+          - --skip-phases=addon/kube-proxy
           # If we have never issued in the initialize state, we can manually do following
           # remove current apiserver certificates
           # sudo rm /etc/kubernetes/pki/apiserver.*
@@ -46,17 +64,15 @@
           # We should design the CIDR range that suites with our need.
           # It will be better when we control multiple clusters and want to connect each other
           # The setting below is just maximized the size of network
-          # 10.128.0.0/10: 10.128.0.0 -> 10.191.255.255, 4.194.304 pod ips. 16384 nodes.
-          - --pod-network-cidr=10.128.0.0/10
-          # 10.16.0.0/12: 10.16.0.0 -> 10.31.255.255, 1.048.576 services
-          - --service-cidr=10.16.0.0/12
+          - --pod-network-cidr={{ pod_network_cidr_v4 }},{{ pod_network_cidr_v6 }}
+          - --service-cidr={{ service_cidr_v4 }},{{ service_cidr_v6 }}
         chdir: $HOME
       register: initial_cluster_output
       when:
         - portcheck6443.failed
         - not kubernetes_kubelet_conf.stat.exists
       failed_when: initial_cluster_output.rc != 0
-      changed_when: false
+      changed_when: true
 
     - name: Get stat of /etc/kubernetes/admin.conf
       ansible.builtin.stat:
@@ -79,12 +95,38 @@
         remote_src: true
       when: kubernetes_admin_conf.stat.exists
 
-    - name: Install Pod network
-      ansible.builtin.command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
-      register: kubectl_install_calico # <- Registers the command output.
-      changed_when: kubectl_install_calico.rc != 0 # <- Uses the return code to define when the task has changed.
-      args:
-        chdir: $HOME
+    # helm repo add cilium https://helm.cilium.io/
+    - name: Add cilium chart repo
+      kubernetes.core.helm_repository:
+        name: cilium
+        repo_url: "https://helm.cilium.io/"
+
+    # https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/#kubeproxy-free
+    # helm install cilium cilium/cilium --version 1.14.0 --namespace kube-system
+    # https://docs.cilium.io/en/v1.14/helm-reference/
+    - name: Deploy cilium
+      kubernetes.core.helm:
+        name: cilium
+        chart_ref: cilium/cilium
+        chart_version: 1.14.0
+        release_namespace: kube-system
+        set_values:
+          # Replace kube-proxy
+          - value: kubeProxyReplacement=true
+          # kubernetes API address
+          # Do not use kubernetes API address by ClusterIP because kube-proxy is gone this time
+          - value: k8sServiceHost={{ hostvars.master_lb_1.private_ip }}
+          - value: k8sServicePort=6443
+          # Do so by providing new values to Helm and applying them to the existing installation.
+          # The agent pods will be gradually restarted.
+          - value: rollOutCiliumPods=true
+          - value: ipv4.enabled=true
+          - value: ipv6.enabled=true
+          - value: ipam.mode=cluster-pool
+          - value: ipam.operator.clusterPoolIPv4PodCIDRList={{ cilium_pod_network_cidr_v4 }}
+          - value: ipam.operator.clusterPoolIPv6PodCIDRList={{ cilium_pod_network_cidr_v6 }}
+          - value: ipam.operator.clusterPoolIPv4MaskSize=24
+          - value: ipam.operator.clusterPoolIPv6MaskSize=112
 
     - name: Copy kubeconfig to localhost
       become: true

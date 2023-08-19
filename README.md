@@ -10,6 +10,18 @@ This repo will create kubernetes cluster with some tools:
 - `nginx`           Loadbalancing for workers
 - `crictl`          The command-line interface tool for inspecting and debug container runtimes and applications on a Kubernetes node
 
+## Features
+- Cilium network
+- DualStack (ipv4 and ipv6)
+
+Add to service spec section
+```yaml
+ipFamilyPolicy: RequireDualStack
+ipFamilies: # The order is important, the first one will be shown on the service list
+- IPv4
+- IPv6
+```
+
 ## Get started
 - Create ssh key pair
 ```shell
@@ -45,6 +57,18 @@ Example output
         tf_k8s_worker_3-172.26.34.73-admin@18.141.211.57
         tf_k8s_worker_lb_1-172.26.8.148-admin@54.179.170.137
 
+- Install some ansible modules
+```shell
+    # Modules:
+    # https://docs.ansible.com/ansible/latest/collections/kubernetes/core/k8s_module.html
+    # - kubernetes.core.k8s
+    # - kubernetes.core.kubectl
+    # https://docs.ansible.com/ansible/latest/collections/kubernetes/core/helm_module.html
+    # - kubernetes.core.helm
+    # - kubernetes.core.helm_repository
+    # To be sure python pip module is installed in all hosts
+    ansible-galaxy collection install kubernetes.core
+```
 - Automatically install kubernetes cluster (all in one)
 ```shell
     ansible-playbook k8s.playbook.yml
