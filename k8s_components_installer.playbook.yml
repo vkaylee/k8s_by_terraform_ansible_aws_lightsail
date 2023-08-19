@@ -1,5 +1,5 @@
 - name: Install some common packages to all hosts
-  hosts: masters, master_lbs, workers, worker_lbs
+  hosts: all
   tasks:
     - name: Install list of common packages
       become: true
@@ -12,6 +12,8 @@
         - ca-certificates
         - gnupg
         - apt-transport-https
+        - python3
+        - python3-pip
         - netcat # Tool to check ports
         - htop
 
