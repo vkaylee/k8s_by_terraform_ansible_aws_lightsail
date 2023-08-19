@@ -216,6 +216,7 @@
         repo: "deb [signed-by=/etc/apt/trusted.gpg.d/debian_docker.asc] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
         state: present
         filename: docker
+
     - name: Install containerd.io
       become: true
       ansible.builtin.apt:
@@ -292,19 +293,6 @@
       register: my_output # <- Registers the command output.
       changed_when: my_output.rc != 0 # <- Uses the return code to define when the task has changed.
 
-    - name: Get stat of /etc/modules-load.d/containerd.conf
-      ansible.builtin.stat:
-        path: "/etc/modules-load.d/containerd.conf"
-      register: create_containerd_conf_status
-
-    - name: Touch /etc/modules-load.d/containerd.conf
-      become: true
-      ansible.builtin.file:
-        path: "/etc/modules-load.d/containerd.conf"
-        state: "touch"
-        mode: a+r
-      when: not create_containerd_conf_status.stat.exists
-
     - name: Add conf for containerd
       become: true
       ansible.builtin.blockinfile:
@@ -312,5 +300,7 @@
         block: |
           overlay
           br_netfilter
+        create: true
+        mode: u+r
       notify:
         - Restart containerd
