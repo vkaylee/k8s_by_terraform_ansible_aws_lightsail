@@ -304,3 +304,19 @@
         mode: u+r
       notify:
         - Restart containerd
+
+- name: Install some components on masters
+  hosts: masters
+  tasks:
+    - name: Install helm
+      become: true
+      ansible.builtin.unarchive:
+        src: https://get.helm.sh/helm-v3.12.3-linux-amd64.tar.gz
+        dest: /usr/local/bin
+        extra_opts: "--strip-components=1"
+        owner: root
+        group: root
+        mode: '0755'
+        remote_src: true
+      args:
+        creates: /usr/local/bin/helm
