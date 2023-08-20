@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
 # Need tools:
-# terraform
-# ansible
-# ansible-playbook
-# ansible-inventory
-# kubectl
-# ssh-keygen
-# jq
-# awk
-# grep
-# tr
-# wc
+needTools=()
+needTools+=( terraform )
+needTools+=( ansible )
+needTools+=( ansible-playbook )
+needTools+=( ansible-inventory )
+needTools+=( kubectl )
+needTools+=( ssh-keygen )
+needTools+=( jq )
+needTools+=( awk )
+needTools+=( grep )
+needTools+=( tr )
+needTools+=( wc )
+for command in ${needTools[@]}; do
+    if [ ! "$(command -v ${command})" ]; then
+        echo "command \"${command}\" does not exist on the system"
+        exit 1
+    fi
+done
+
 function sigint_func()
 {
     exit 0
