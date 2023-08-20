@@ -168,7 +168,7 @@ main(){
                     echo "Please choose:"
                     echo "up"
                     echo "down"
-                    return
+                    exit 1
                 ;;
             esac
         ;;
@@ -206,7 +206,7 @@ main(){
             echo "scale"
             echo "destroy"
             echo "refresh"
-            return
+            exit 1
         ;;
     esac
     return
