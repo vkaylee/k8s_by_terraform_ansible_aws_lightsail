@@ -1,8 +1,12 @@
 - name: Get join command
   ansible.builtin.import_playbook: k8s_join_command.playbook.yml
+  tags:
+    - addNode
 
 - name: Other Control planes joining
   hosts: masters,!master_1
+  tags:
+    - addNode
   tasks:
     - name: Check kubelet info for sure the current node is not in any cluster
       ansible.builtin.stat:

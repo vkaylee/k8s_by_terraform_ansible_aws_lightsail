@@ -23,6 +23,13 @@ ipFamilies: # The order is important, the first one will be shown on the service
 ```
 
 ## Get started
+### Automatic feature
+- `./action.sh init` Create the infrastructure and install a cluster on it
+- `./action.sh scale up <master or worker>` Add more node to cluster, default is worker node
+- `./action.sh scale down <master or worker>` Remove one node from cluster, default is worker node
+- `./action.sh destroy` Destroy the infrastructure
+- `./action.sh refresh` Keep the cluster match with the inventory
+### Manual steps
 - Create ssh key pair
 ```shell
     ssh-keygen -t rsa -b 4096 -C "your_email@example.com" -q -N "" -f tf_k8s

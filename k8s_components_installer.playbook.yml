@@ -1,5 +1,7 @@
 - name: Install some common packages to all hosts
   hosts: all
+  tags:
+    - addNode
   tasks:
     - name: Install list of common packages
       become: true
@@ -73,6 +75,8 @@
       when: rsyslog_haproxy_config_file is defined
       notify:
         - Restart rsyslog
+      tags:
+        - addNode
 
     - name: Install keepalived
       become: true
@@ -110,9 +114,13 @@
         mode: a+r
       notify:
         - Reload haproxy
+      tags:
+        - addNode
 
 - name: Install components on masters and workers
   hosts: masters, workers
+  tags:
+    - addNode
   handlers:
     - name: Restart containerd
       become: true
@@ -282,6 +290,8 @@
 
 - name: Install some components on masters
   hosts: masters
+  tags:
+    - addNode
   tasks:
     # This one is required for ansible module kubernetes.core.k8s
     - name: Install kubernetes python package on version >=12.0.0

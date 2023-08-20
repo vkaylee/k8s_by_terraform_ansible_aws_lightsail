@@ -1,5 +1,7 @@
 - name: Install crictl to debug pods and containers
   hosts: masters, workers
+  tags:
+    - addNode
   vars:
     crictl_version: v1.27.0
   tasks:
