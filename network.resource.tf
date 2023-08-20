@@ -6,6 +6,7 @@ resource "aws_lightsail_instance_public_ports" "master" {
     from_port = 22
     to_port = 22
   }
+  # TCP	Inbound	2379-2380	etcd server client API	kube-apiserver, etcd
   port_info {
     protocol = "tcp"
     from_port = 2379
