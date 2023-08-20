@@ -6,11 +6,11 @@ resource "aws_lightsail_instance_public_ports" "master" {
     from_port = 22
     to_port = 22
   }
-  # port_info {
-  #   protocol = "tcp"
-  #   from_port = 2379
-  #   to_port = 2380
-  # }
+  port_info {
+    protocol = "tcp"
+    from_port = 2379
+    to_port = 2380
+  }
   port_info {
     protocol = "tcp"
     from_port = 6443
