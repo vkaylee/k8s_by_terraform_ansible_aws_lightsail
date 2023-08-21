@@ -42,6 +42,12 @@ resource "aws_lightsail_instance_public_ports" "master_lb" {
     from_port = 6443
     to_port = 6443
   }
+  # Port for haproxy stats
+  port_info {
+    protocol = "tcp"
+    from_port = 9000
+    to_port = 9000
+  }
 }
 
 resource "aws_lightsail_instance_public_ports" "worker" {

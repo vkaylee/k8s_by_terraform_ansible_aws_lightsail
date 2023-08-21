@@ -22,6 +22,20 @@ defaults
   timeout client 50000
   timeout server 50000
 
+# Configuration for stats feature
+listen stats
+  # Listen on port 9000
+  # v4v6: listen for both socket ipv4 and ipv6
+  bind :::9000 v4v6
+  mode http
+  stats enable
+  stats hide-version
+  stats realm Haproxy\ Statistics
+  # Uri: default one is "/", will be "/haproxy?stats"
+  stats uri /stats
+  # http auth in plain text
+  # stats auth Username:Password
+
 frontend kube-apiserver
   bind :::6443 v4v6
   mode tcp
