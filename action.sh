@@ -83,7 +83,7 @@ main(){
                 up)
                     shift 1
                     local ansibleLimit
-                    ansibleLimit="master_1,worker_$((worker_count +1))"
+                    ansibleLimit="master_1,worker_lbs,worker_$((worker_count +1))"
                     local terraformVarOptions
                     terraformVarOptions="-var="master_count=${master_count}" -var="worker_count=$((worker_count+1))""
                     if [[ "${nodeRole}" == "master" ]]; then
@@ -155,7 +155,9 @@ main(){
                         fi
                         while true; do
                             if terraform_func apply -auto-approve ${terraformVarOptions}; then
-                                break 1
+                                if ansible-playbook -i "${working_dir}/ansible.inventory.cfg" "${working_dir}/k8s.playbook.yml" --limit "worker_lbs" --tags deleteNode; then
+                                    break 1
+                                fi
                             fi
                             sleep 1
                         done
