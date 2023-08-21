@@ -45,8 +45,8 @@
         argv:
           - kubeadm
           - init
-          - --control-plane-endpoint={{ hostvars.master_lb_1.private_ip }}:6443
-          - --apiserver-bind-port=6443
+          - --control-plane-endpoint={{ hostvars.master_lb_1.private_ip }}:{{ control_plane_endpoint_port }}
+          - --apiserver-bind-port={{ apiserver_bind_port }}
           - --cri-socket=unix:///var/run/containerd/containerd.sock
           - --service-dns-domain=cluster.internal
           - --upload-certs
@@ -116,7 +116,7 @@
           # kubernetes API address
           # Do not use kubernetes API address by ClusterIP because kube-proxy is gone this time
           - value: k8sServiceHost={{ hostvars.master_lb_1.private_ip }}
-          - value: k8sServicePort=6443
+          - value: k8sServicePort={{ control_plane_endpoint_port }}
           # Do so by providing new values to Helm and applying them to the existing installation.
           # The agent pods will be gradually restarted.
           - value: rollOutCiliumPods=true

@@ -117,6 +117,41 @@
       tags:
         - addNode
 
+- name: Install Worker loadbalancer
+  hosts: worker_lbs
+  handlers:
+    - name: Reload nginx
+      become: true
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
+
+  tasks:
+    - name: Install nginx
+      become: true
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+        update_cache: true
+
+    - name: Start nginx
+      become: true
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Upload worker.nginx.conf
+      become: true
+      ansible.builtin.template:
+        dest: /etc/nginx/nginx.conf
+        src: worker.nginx.conf
+        mode: a+r
+      notify:
+        - Reload nginx
+      tags:
+        - addNode
+
 - name: Install components on masters and workers
   hosts: masters, workers
   tags:

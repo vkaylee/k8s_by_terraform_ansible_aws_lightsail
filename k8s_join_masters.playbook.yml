@@ -13,13 +13,13 @@
         path: "/etc/kubernetes/kubelet.conf"
       register: kubernetes_kubelet_conf
 
-    - name: Check if port 6443 is listening
+    - name: Check if apiserver port is listening
       ansible.builtin.wait_for:
         host: 0.0.0.0
-        port: 6443
+        port: "{{ apiserver_bind_port }}"
         timeout: 1
         msg: "Timeout waiting for port 6443 to respond"
-      register: portcheck6443
+      register: apiserverportcheck
       ignore_errors: true
 
     - name: Run command to join
@@ -32,7 +32,7 @@
         chdir: $HOME
       when:
         - not kubernetes_kubelet_conf.stat.exists
-        - portcheck6443.failed
+        - apiserverportcheck.failed
         - hostvars['master_1']['kubernetes_worker_join_command'] is defined
         - hostvars['master_1']['kubernetes_cerfiticate_key'] is defined
       register: kubernetes_control_plane_join

@@ -33,19 +33,20 @@ variable "master_bundle_id" {
   default = "medium_3_0"
 }
 variable master_ports {
-  type = list(object({
+  type = map(object({
     protocol  = string
     port      = number
   }))
-  default = [
+  default = {
+    # Just change port if need
     # SSH port
-    { protocol = "tcp", port = 22},
+    ssh = { protocol = "tcp", port = 22},
     # TCP	Inbound	2379-2380	etcd server client API	kube-apiserver, etcd
-    { protocol = "tcp", port = 2379},
-    { protocol = "tcp", port = 2380},
+    etcd_1 = { protocol = "tcp", port = 2379},
+    etcd_2 = { protocol = "tcp", port = 2380},
     # Kube API server
-    { protocol = "tcp", port = 6443},
-  ]
+    tcp_api = { protocol = "tcp", port = 6443},
+  }
 }
 
 variable "master_lb_count" {
@@ -59,18 +60,29 @@ variable "master_lb_bundle_id" {
   default = "nano_3_0"
 }
 variable master_lb_ports {
-  type = list(object({
+  type = map(object({
     protocol  = string
     port      = number
   }))
-  default = [
+  default = {
+    # Just change port if need
     # SSH port
-    { protocol = "tcp", port = 22},
-    # Kube API server
-    { protocol = "tcp", port = 6443},
+    ssh = { protocol = "tcp", port = 22},
     # Port for haproxy stats
-    { protocol = "tcp", port = 9000},
-  ]
+    tcp_stats = { protocol = "tcp", port = 9000},
+  }
+}
+variable master_lb_ports_map {
+  type = map(object({
+    protocol          = string
+    port              = number
+    master_port_name  = string
+  }))
+  default = {
+    # Just change port if need
+    # Kube API server
+    tcp_api_server = { protocol = "tcp", port = 6443, master_port_name = "tcp_api" },
+  }
 }
 
 variable "worker_count" {
@@ -84,16 +96,18 @@ variable "worker_bundle_id" {
   default = "medium_3_0"
 }
 variable worker_ports {
-  type = list(object({
+  type = map(object({
     protocol  = string
     port      = number
   }))
-  default = [
+  default = {
+    # Just change port if need
     # SSH port
-    { protocol = "tcp", port = 22},
-    { protocol = "tcp", port = 30080},
-    { protocol = "tcp", port = 30443},
-  ]
+    ssh = { protocol = "tcp", port = 22},
+    # kubernetes NodePort range 30000-32767
+    ingress_tcp_http = { protocol = "tcp", port = 30080},
+    ingress_tcp_https = { protocol = "tcp", port = 30443},
+  }
 }
 
 variable "worker_lb_count" {
@@ -107,14 +121,29 @@ variable "worker_lb_bundle_id" {
   default = "nano_3_0"
 }
 variable worker_lb_ports {
-  type = list(object({
+  type = map(object({
     protocol  = string
     port      = number
   }))
-  default = [
+  default = {
+    # Just change port if need
     # SSH port
-    { protocol = "tcp", port = 22},
-  ]
+    ssh = { protocol = "tcp", port = 22},
+  }
+}
+
+variable worker_lb_ports_map {
+  type = map(object({
+    protocol          = string
+    port              = number
+    worker_port_name  = string
+  }))
+  default = {
+    # Just change port if need
+    # SSH port
+    http = { protocol = "tcp", port = 80, worker_port_name = "ingress_tcp_http" },
+    https = { protocol = "tcp", port = 443, worker_port_name = "ingress_tcp_https"},
+  }
 }
 
 variable "user_data" {

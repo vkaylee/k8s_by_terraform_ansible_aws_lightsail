@@ -27,5 +27,9 @@ worker_${k + 1} ansible_host=${instance.public_ip_address} private_ip=${instance
 %{ for k, instance in aws_lightsail_instance.worker_lb }
 worker_lb_${k + 1} ansible_host=${instance.public_ip_address} private_ip=${instance.private_ip_address} ansible_user=${instance.username} ansible_ssh_private_key_file=${var.ssh_key_path}
 %{ endfor }
+
+[all:vars] 
+apiserver_bind_port=${var.master_ports.tcp_api.port}
+control_plane_endpoint_port=${var.master_lb_ports_map.tcp_api_server.port}
 EOT
 }
