@@ -30,13 +30,13 @@
         path: "/etc/kubernetes/kubelet.conf"
       register: kubernetes_kubelet_conf
 
-    - name: Check if port 6443 is listening
+    - name: Check if apiserver port is listening
       ansible.builtin.wait_for:
         host: 0.0.0.0
-        port: 6443
+        port: "{{ apiserver_bind_port }}"
         timeout: 1
-        msg: "Timeout waiting for port 6443 to respond"
-      register: portcheck6443
+        msg: "Timeout waiting for port {{ apiserver_bind_port }} to respond"
+      register: apiserverportcheck
       ignore_errors: true
 
     - name: Initialize the cluster
@@ -69,7 +69,7 @@
         chdir: $HOME
       register: initial_cluster_output
       when:
-        - portcheck6443.failed
+        - apiserverportcheck.failed
         - not kubernetes_kubelet_conf.stat.exists
       failed_when: initial_cluster_output.rc != 0
       changed_when: true
