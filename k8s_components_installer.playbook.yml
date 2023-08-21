@@ -78,20 +78,6 @@
       tags:
         - addNode
 
-    - name: Install keepalived
-      become: true
-      ansible.builtin.apt:
-        name: keepalived
-        state: present
-        update_cache: true
-
-    - name: Install psmisc
-      become: true
-      ansible.builtin.apt:
-        name: psmisc
-        state: present
-        update_cache: true
-
     - name: Start rsyslog
       become: true
       ansible.builtin.service:
