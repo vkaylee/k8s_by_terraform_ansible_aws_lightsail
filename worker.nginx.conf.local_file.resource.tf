@@ -23,18 +23,24 @@ events {
     worker_connections 65535;
     # multi_accept on;
 }
+
+# Apply passive health check
+# https://docs.nginx.com/nginx/admin-guide/load-balancer/tcp-health-check/
+# Use cases for passive and active health check
+# https://www.nginx.com/blog/active-or-passive-health-checks-which-is-right-for-you/
+# Note: Active health check is just for Nginx Plus, a commercial version
 stream {
     %{ for worker_port in local.nginx_upstream_worker_ports}
     upstream ipv4_worker_port_${worker_port}_servers {
         least_conn;
         %{ for index, instance in aws_lightsail_instance.worker }
-        server ${instance.private_ip_address}:${worker_port};
+        server ${instance.private_ip_address}:${worker_port} max_fails=2 fail_timeout=30s;
         %{ endfor }
     }
     upstream ipv6_worker_port_${worker_port}_servers {
         least_conn;
         %{ for index, instance in aws_lightsail_instance.worker }
-        server [${instance.ipv6_addresses[0]}]:${worker_port};
+        server [${instance.ipv6_addresses[0]}]:${worker_port} max_fails=2 fail_timeout=30s;
         %{ endfor }
     }
     %{ endfor }
