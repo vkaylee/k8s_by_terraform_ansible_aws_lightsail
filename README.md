@@ -22,6 +22,7 @@ ipFamilies: # The order is important, the first one will be shown on the service
 - IPv6
 ```
 - High available cluster with haproxy loadbalancer for masters, check stats `<loadbalancerIP>:9000/stats`
+- Metrics server `kubectl top pod`, `kubectl top node`
 
 ## Get started
 ### Automatic feature
