@@ -2,6 +2,10 @@
   hosts: all
   tags:
     - addNode
+  handlers:
+    - name: Apply sysctl settings
+      become: true
+      ansible.builtin.command: sysctl --system
   tasks:
     - name: Install list of common packages
       become: true
@@ -112,7 +116,36 @@
         name: nginx
         state: reloaded
 
+    - name: Restart rsyslog
+      become: true
+      ansible.builtin.service:
+        name: rsyslog
+        state: restarted
+
   tasks:
+    - name: Install rsyslog
+      become: true
+      ansible.builtin.apt:
+        name: rsyslog
+        state: present
+        update_cache: true
+
+    - name: Upload worker_lb.nginx.rsyslog.conf
+      become: true
+      ansible.builtin.template:
+        dest: "/etc/rsyslog.d/nginx.conf"
+        src: worker_lb.nginx.rsyslog.conf
+        mode: a+r
+      notify:
+        - Restart rsyslog
+
+    - name: Start rsyslog
+      become: true
+      ansible.builtin.service:
+        name: rsyslog
+        state: started
+        enabled: true
+
     - name: Install nginx
       become: true
       ansible.builtin.apt:

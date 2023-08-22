@@ -30,6 +30,10 @@ events {
 # https://www.nginx.com/blog/active-or-passive-health-checks-which-is-right-for-you/
 # Note: Active health check is just for Nginx Plus, a commercial version
 stream {
+    # Config logging
+    # Send log to rsyslog udp server
+    # https://docs.nginx.com/nginx/admin-guide/monitoring/logging/
+    error_log syslog:server=127.0.0.1:514,facility=local0,tag=nginx,severity=warn;
     %{ for worker_port in local.nginx_upstream_worker_ports}
     upstream ipv4_worker_port_${worker_port}_servers {
         least_conn;
