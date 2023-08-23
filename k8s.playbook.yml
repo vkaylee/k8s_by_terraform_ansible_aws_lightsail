@@ -12,6 +12,52 @@
 - name: Workers join
   ansible.builtin.import_playbook: k8s_join_workers.playbook.yml
 
+- name: Install some things to the cluster after having worker node
+  hosts: masters
+  run_once: true
+  tasks:
+    # helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+    - name: Add ingress-nginx chart repo
+      kubernetes.core.helm_repository:
+        name: ingress-nginx
+        repo_url: "https://kubernetes.github.io/ingress-nginx"
+
+    - name: Create a list all ips of worker_lbs
+      ansible.builtin.set_fact:
+        # TODO: consider to add ipv6
+        worker_lb_ips: "{{ worker_lb_ips | default([]) + [hostvars[item].ansible_host] + [hostvars[item].private_ip] }}"
+      loop: "{{ groups['worker_lbs'] }}"
+
+    - name: Create a string containing all ips of worker_lbs
+      ansible.builtin.set_fact:
+        worker_lb_ips_string_by_comma: "{{ worker_lb_ips | map('regex_replace', '^(.*)$', '\"\\1\"') | join(',') }}"
+
+    - name: Display the worker_lb_ips_string_by_comma
+      ansible.builtin.debug:
+        var: worker_lb_ips_string_by_comma
+
+    # Because ingress-nginx controller pod is scheduled on workers node that's why we need to install after having a worker node
+    # https://artifacthub.io/packages/helm/ingress-nginx/ingress-nginx
+    # helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace
+    - name: Deploy ingress-nginx
+      kubernetes.core.helm:
+        name: ingress-nginx
+        chart_ref: ingress-nginx/ingress-nginx
+        chart_version: 4.7.1
+        release_namespace: ingress-nginx
+        create_namespace: true
+        set_values:
+          - value: controller.autoscaling.enabled=true
+          - value: controller.autoscaling.maxReplicas=30
+          - value: controller.autoscaling.minReplicas=3
+          - value: controller.resources.requests.cpu="20m"
+          - value: controller.resources.requests.memory="18Mi"
+          - value: controller.service.nodePorts.http="{{ worker_http_port_for_ingress }}"
+          - value: controller.service.nodePorts.https="{{ worker_https_port_for_ingress }}"
+          - value: controller.service.ipFamilyPolicy="RequireDualStack"
+          - value: controller.service.ipFamilies={"IPv4","IPv6"}
+          - value: controller.service.externalIPs={"{{ worker_lb_ips_string_by_comma }}"}
+
 - name: Install crictl tool to query pods and containers
   ansible.builtin.import_playbook: k8s_crictl_component.playbook.yml
 

@@ -31,5 +31,7 @@ worker_lb_${k + 1} ansible_host=${instance.public_ip_address} private_ip=${insta
 [all:vars] 
 apiserver_bind_port=${var.master_ports.tcp_api.port}
 control_plane_endpoint_port=${var.master_lb_ports_map.tcp_api_server.port}
+worker_http_port_for_ingress=${var.worker_ports["ingress_tcp_http"].port}
+worker_https_port_for_ingress=${var.worker_ports["ingress_tcp_https"].port}
 EOT
 }

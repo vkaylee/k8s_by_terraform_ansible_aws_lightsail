@@ -23,7 +23,10 @@ This repo will create kubernetes cluster with some tools:
     ```
 - High available cluster with haproxy loadbalancer for masters, check stats `<loadbalancerIP>:9000/stats`
 - Metrics server `kubectl top pod`, `kubectl top node`
-
+- Ingress Nginx Controller (Support DualStack)
+    ```shell
+    kubectl describe svc ingress-nginx-controller -n ingress-nginx
+    ```
 ## Get started
 ### Automatic feature
 - `./action.sh init` Create the infrastructure and install a cluster on it
