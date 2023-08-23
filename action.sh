@@ -28,10 +28,12 @@ working_dir="$(dirname $0)"
 
 kubectl_func(){
     kubectl --kubeconfig="${working_dir}/kubeconfig" "$@"
+    return $?
 }
 
 terraform_func(){
     terraform -chdir="${working_dir}" "$@"
+    return $?
 }
 
 ANSIBLE_CONFIG="${working_dir}/ansible.cfg"
@@ -45,22 +47,38 @@ main(){
                 echo "Cluster is existed"
                 return
             fi
+
+            # Terraform init
+            if ! terraform_func init; then
+                echo "Check your terraform configuration and try again"
+                return 1
+            fi
+
             # Create key
             ssh-keygen -t rsa -b 4096 -C "your_email@example.com" -q -N "" -f "${working_dir}/tf_k8s"
             chmod 400 "${working_dir}/tf_k8s"*
             # Create infrastructure
             if terraform_func apply -auto-approve; then
                 sleep 15
+                local count
+                count=1
                 while true; do
                     if ansible-playbook -i "${working_dir}/ansible.inventory.cfg" "${working_dir}/k8s.playbook.yml" --limit 'masters,master_lbs,workers,worker_lbs'; then
                         break 1
                     fi
                     sleep 1
                 done
+                # Give it 3 times to try
+                if (( $(echo "${count} >= 3" | bc -l) )); then
+                    return 1
+                fi
+                
+                ((count++))
                 # Get nodes
                 kubectl_func get nodes -o wide
+                return 0
             fi
-            return
+            return 1
         ;;
         scale)
             shift 1
@@ -92,24 +110,56 @@ main(){
                         terraformVarOptions="-var="master_count=$((master_count+1))" -var="worker_count=${worker_count}""
                     fi
                     # Scale up infrastructure
-                    if terraform_func apply -auto-approve ${terraformVarOptions}; then
-                        sleep 15
-                        # Run ansible playbook but limit to:
-                        # master_1: get join command
-                        # The new node: install components and join
-                        # Just run tasks with tag addNode
+                    local count
+                    count=1
+                    while true; do
+                        if terraform_func apply -auto-approve ${terraformVarOptions}; then
+                            sleep 15
+                            break 1
+                        fi
+                        # Give it 3 times to try
+                        if (( $(echo "${count} >= 3" | bc -l) )); then
+                            return 1
+                        fi
+                        
+                        ((count++))
+                        sleep 1
+                    done
+
+                    # Run ansible playbook but limit to:
+                    # master_1: get join command
+                    # The new node: install components and join
+                    # Just run tasks with tag addNode
+                    local count
+                    count=1
+                    while true; do
                         if ! ansible-playbook -i "${working_dir}/ansible.inventory.cfg" "${working_dir}/k8s.playbook.yml" --limit "${ansibleLimit}" --tags addNode; then
+                            local count1
+                            count1=1
                             while true; do
                                 if terraform_func apply -auto-approve ${currentTerraformVarOptions}; then
                                     break 1
                                 fi
+                                # Give it 3 times to try
+                                if (( $(echo "${count1} >= 3" | bc -l) )); then
+                                    return 1
+                                fi
+                                
+                                ((count1++))
                                 sleep 1
                             done
                         fi
-                    fi
+                        # Give it 3 times to try
+                        if (( $(echo "${count} >= 3" | bc -l) )); then
+                            return 1
+                        fi
+                        
+                        ((count++))
+                        sleep 1
+                    done
                     sleep 15
                     kubectl_func get nodes -o wide
-                    return
+                    return $?
                 ;;
                 down)
                     shift 1
@@ -153,18 +203,26 @@ main(){
                         if [[ "${nodeRole}" == "master" ]]; then
                             terraformVarOptions="-var="master_count=$((master_count-1))" -var="worker_count=${worker_count}""
                         fi
+                        local count
+                        count=1
                         while true; do
                             if terraform_func apply -auto-approve ${terraformVarOptions}; then
                                 if ansible-playbook -i "${working_dir}/ansible.inventory.cfg" "${working_dir}/k8s.playbook.yml" --limit "worker_lbs" --tags deleteNode; then
                                     break 1
                                 fi
                             fi
+                            # Give it 3 times to try
+                            if (( $(echo "${count} >= 3" | bc -l) )); then
+                                return 1
+                            fi
+                            
+                            ((count++))
                             sleep 1
                         done
                     fi
 
                     kubectl_func get nodes -o wide
-                    return
+                    return $?
                 ;;
                 *)
                     echo "Please choose:"
@@ -177,6 +235,8 @@ main(){
 
         destroy)
             shift 1
+            local count
+            count=1
             while true; do
                 if terraform_func apply -auto-approve -destroy; then
                     # Remove kubeconfig, created by ansible
@@ -186,20 +246,34 @@ main(){
 
                     break 1
                 fi
+                # Give it 3 times to try
+                if (( $(echo "${count} >= 3" | bc -l) )); then
+                    return 1
+                fi
+                
+                ((count++))
                 sleep 1
             done
-            return
+            return 0
         ;;
 
         refresh)
             shift 1
+            local count
+            count=1
             while true; do
                 if ansible-playbook -i "${working_dir}/ansible.inventory.cfg" "${working_dir}/k8s.playbook.yml"; then
                     break 1
                 fi
+                # Give it 3 times to try
+                if (( $(echo "${count} >= 3" | bc -l) )); then
+                    return 1
+                fi
+                
+                ((count++))
                 sleep 1
             done
-            return
+            return 0
         ;;
 
         *)
@@ -208,10 +282,10 @@ main(){
             echo "scale"
             echo "destroy"
             echo "refresh"
-            exit 1
+            return 0
         ;;
     esac
-    return
+    return 0
 }
 
 main "${@}"
