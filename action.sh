@@ -311,6 +311,7 @@ main(){
             actions+=("scale up master")
             actions+=("scale down")
             actions+=("refresh")
+            actions+=("destroy")
             #####################################
             #####################################
             #####################################
