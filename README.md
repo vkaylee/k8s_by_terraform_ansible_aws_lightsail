@@ -34,6 +34,16 @@ This repo will create kubernetes cluster with some tools:
 - `./action.sh scale down <master or worker>` Remove one node from cluster, default is worker node
 - `./action.sh destroy` Destroy the infrastructure
 - `./action.sh refresh` Keep the cluster match with the inventory
+- `./action.sh` to choose among options
+    
+    Example options, it might have more features than the list below 
+    ```shell
+     -> init
+        refresh
+        scale-down
+        scale-up
+        scale-up-master
+    ```
 ### Manual steps
 - Create ssh key pair
 ```shell

@@ -277,12 +277,51 @@ main(){
         ;;
 
         *)
-            echo "Please choose:"
-            echo "init"
-            echo "scale"
-            echo "destroy"
-            echo "refresh"
-            return 0
+            local thisScriptPath
+            thisScriptPath="${working_dir}/$(basename "$0")"
+            local actions
+            actions=()
+            #####################################
+            #####################################
+            #### Declare the list of actions ####
+            actions+=("init")
+            actions+=("scale up")
+            actions+=("scale up master")
+            actions+=("scale down")
+            actions+=("refresh")
+            #####################################
+            #####################################
+            #####################################
+            
+            declare -A actionMap
+            for action in "${actions[@]}"; do
+                # Replace all space to dash (-)
+                actionMap["${action// /-}"]="${action}"
+            done
+            local actionKeys
+            actionKeys=()
+            for actionKey in "${!actionMap[@]}"; do
+                actionKeys+=(${actionKey})
+            done
+            IFS=$'\n' sortedActionKeys=($(sort <<<"${actionKeys[*]}")); unset IFS
+            # Load lib for selection feature
+            source "$working_dir/shell_libs/bash_selection_lib.sh"
+            selected_item=0
+            run_menu "$selected_item" "${sortedActionKeys[@]}"
+            menu_result="$?"
+
+            echo
+
+            local actionKeyChose
+            actionKeyChose="${sortedActionKeys[${menu_result}]}"
+            if [[ -z "${actionKeyChose}" ]]; then
+                echo "Error"
+                return 1
+            fi
+            
+            echo "You chose: ${actionMap[${actionKeyChose}]}"
+            eval "${thisScriptPath} ${actionMap[${actionKeyChose}]}"
+            return $?
         ;;
     esac
     return 0
