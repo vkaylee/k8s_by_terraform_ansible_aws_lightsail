@@ -7,7 +7,7 @@ terraform.tfstate
 terraform.tfstate.backup
 # Personal files
 ansible.inventory.cfg
-master.haproxy.cfg
+master_lb.haproxy.cfg
 worker_lb.nginx.conf
 ssh.sh
 action.sh.lock

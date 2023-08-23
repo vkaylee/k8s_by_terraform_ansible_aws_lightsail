@@ -96,11 +96,11 @@
         state: started
         enabled: true
 
-    - name: Upload haproxy.cfg
+    - name: Upload master_lb.haproxy.cfg
       become: true
       ansible.builtin.template:
         dest: /etc/haproxy/haproxy.cfg
-        src: master.haproxy.cfg
+        src: master_lb.haproxy.cfg
         mode: a+r
       notify:
         - Reload haproxy
