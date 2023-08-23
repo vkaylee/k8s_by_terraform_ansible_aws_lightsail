@@ -160,11 +160,11 @@
         state: started
         enabled: true
 
-    - name: Upload worker.nginx.conf
+    - name: Upload worker_lb.nginx.conf
       become: true
       ansible.builtin.template:
         dest: /etc/nginx/nginx.conf
-        src: worker.nginx.conf
+        src: worker_lb.nginx.conf
         mode: a+r
       notify:
         - Reload nginx
