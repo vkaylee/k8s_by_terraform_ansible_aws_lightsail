@@ -10,3 +10,4 @@ ansible.inventory.cfg
 master.haproxy.cfg
 worker.nginx.conf
 ssh.sh
+action.sh.lock

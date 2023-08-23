@@ -18,13 +18,34 @@ for command in ${needTools[@]}; do
         exit 1
     fi
 done
+working_dir="$(dirname $0)"
+thisScriptPath="${working_dir}/$(basename "$0")"
+
+# Apply lock file to avoid multiple run in the same time
+# Due to the issue with terraform and ansible, ansible is depended on configuration file that is rendered by terraform
+# We just allow to run only one process at once
+# Refer: https://www.putorius.net/lock-files-bash-scripts.html
+internalCallMark="internalCallMark"
+# Check the first argument to know is it called form internal?
+if [[ "${internalCallMark}" != "${1}" ]]; then
+    # Don't apply lock strategy for internal call 
+    # Check is Lock File exists, if not create it and set trap on exit
+    if { set -C; 2>/dev/null > "${thisScriptPath}.lock"; }; then
+        trap "rm -f ${thisScriptPath}.lock" EXIT
+    else
+        echo "This script is running in another process, try again later"
+        exit 1
+    fi
+else
+    # Remove the first argument
+    shift 1
+fi
 
 function sigint_func()
 {
     exit 0
 }
 trap sigint_func SIGINT
-working_dir="$(dirname $0)"
 
 kubectl_func(){
     kubectl --kubeconfig="${working_dir}/kubeconfig" "$@"
@@ -187,7 +208,8 @@ main(){
                         fi
                         
                         # when the node is in inventory but not in kubernetes nodes
-                        eval "${working_dir}/$(basename "$0") refresh"
+                        # Don't forget to put internalCallMark to notify this call is from internal
+                        eval "${working_dir}/$(basename "$0") ${internalCallMark} refresh"
                     done
                     
 
@@ -320,7 +342,9 @@ main(){
             fi
             
             echo "You chose: ${actionMap[${actionKeyChose}]}"
-            eval "${thisScriptPath} ${actionMap[${actionKeyChose}]}"
+
+            # Don't forget to put internalCallMark to notify this call is from internal
+            eval "${thisScriptPath} ${internalCallMark} ${actionMap[${actionKeyChose}]}"
             return $?
         ;;
     esac
