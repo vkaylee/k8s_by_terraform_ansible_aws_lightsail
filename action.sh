@@ -79,27 +79,39 @@ main(){
             ssh-keygen -t rsa -b 4096 -C "your_email@example.com" -q -N "" -f "${working_dir}/tf_k8s"
             chmod 400 "${working_dir}/tf_k8s"*
             # Create infrastructure
-            if terraform_func apply -auto-approve; then
-                sleep 15
-                local count
-                count=1
-                while true; do
-                    if ansible-playbook -i "${working_dir}/ansible.inventory.cfg" "${working_dir}/k8s.playbook.yml" --limit 'masters,master_lbs,workers,worker_lbs'; then
-                        break 1
-                    fi
-                    sleep 1
-                done
+            local count
+            count=1
+            while true; do
+                if terraform_func apply -auto-approve; then
+                    break 1
+                fi
                 # Give it 3 times to try
                 if (( $(echo "${count} >= 3" | bc -l) )); then
                     return 1
                 fi
                 
                 ((count++))
-                # Get nodes
-                kubectl_func get nodes -o wide
-                return 0
-            fi
-            return 1
+                sleep 1
+            done
+            
+            # Install cluster
+            local count
+            count=1
+            while true; do
+                if ansible-playbook -i "${working_dir}/ansible.inventory.cfg" "${working_dir}/k8s.playbook.yml" --limit 'masters,master_lbs,workers,worker_lbs'; then
+                    break 1
+                fi
+                # Give it 3 times to try
+                if (( $(echo "${count} >= 3" | bc -l) )); then
+                    return 1
+                fi
+                
+                ((count++))
+                sleep 1
+            done
+
+            kubectl_func get nodes -o wide
+            return $?
         ;;
         scale)
             shift 1
