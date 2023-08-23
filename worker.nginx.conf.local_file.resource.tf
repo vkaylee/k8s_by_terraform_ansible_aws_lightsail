@@ -16,12 +16,13 @@ pid /run/nginx.pid;
 # E.g. if LimitNOFILE is 65535, I set to 30000 (systemd)
 # E.g. if "nginx       hard    nofile  30000" in the  /etc/security/limits.conf, I set to 30000 (non-systemd)
 ###############################################################################################################
-worker_rlimit_nofile 30000; #vg
+worker_rlimit_nofile 1047552; #vg
 include /etc/nginx/modules-enabled/*.conf;
 
 events {
-    worker_connections 65535;
-    # multi_accept on;
+    multi_accept        on;
+    worker_connections  16384;
+    use                 epoll;
 }
 
 # Apply passive health check
