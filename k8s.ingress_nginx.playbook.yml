@@ -1,0 +1,62 @@
+- name: Install ingress-nginx by helm
+  hosts: masters
+  run_once: true
+  tasks:
+    # helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+    - name: Add ingress-nginx chart repo
+      kubernetes.core.helm_repository:
+        name: ingress-nginx
+        repo_url: "https://kubernetes.github.io/ingress-nginx"
+
+    - name: Create a list all ips of worker_lbs
+      ansible.builtin.set_fact:
+        # TODO: consider to add ipv6
+        worker_lb_ips: "{{ worker_lb_ips | default([]) + [hostvars[item].ansible_host] + [hostvars[item].private_ip] }}"
+      loop: "{{ groups['worker_lbs'] }}"
+
+    - name: Create a string containing all ips of worker_lbs
+      ansible.builtin.set_fact:
+        worker_lb_ips_string_by_comma: "{{ worker_lb_ips | map('regex_replace', '^(.*)$', '\"\\1\"') | join(',') }}"
+
+    - name: Display the worker_lb_ips_string_by_comma
+      ansible.builtin.debug:
+        var: worker_lb_ips_string_by_comma
+
+    - name: Create value file for helm ingress-nginx
+      ansible.builtin.blockinfile:
+        path: "{{ ansible_env.HOME }}/helm-ingress-nginx-values.yml"
+        create: true
+        mode: a+r
+        block: |
+          controller:
+            topologySpreadConstraints:
+              - maxSkew: 2
+                topologyKey: kubernetes.io/hostname
+                whenUnsatisfiable: ScheduleAnyway
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: ingress-nginx
+
+    # Because ingress-nginx controller pod is scheduled on workers node that's why we need to install after having a worker node
+    # https://artifacthub.io/packages/helm/ingress-nginx/ingress-nginx
+    # helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace
+    - name: Deploy ingress-nginx
+      kubernetes.core.helm:
+        name: ingress-nginx
+        chart_ref: ingress-nginx/ingress-nginx
+        chart_version: 4.7.1
+        release_namespace: ingress-nginx
+        create_namespace: true
+        values_files:
+          - "{{ ansible_env.HOME }}/helm-ingress-nginx-values.yml"
+        set_values:
+          - value: controller.autoscaling.enabled=true
+          - value: controller.autoscaling.maxReplicas="{{ groups['workers'] | length * 3 }}"
+          - value: controller.autoscaling.minReplicas="{{ groups['workers'] | length }}"
+          - value: controller.resources.requests.cpu="125m"
+          - value: controller.resources.requests.memory="250Mi"
+          - value: controller.service.nodePorts.http="{{ worker_http_port_for_ingress }}"
+          - value: controller.service.nodePorts.https="{{ worker_https_port_for_ingress }}"
+          - value: controller.service.ipFamilyPolicy="RequireDualStack"
+          - value: controller.service.ipFamilies={"IPv4","IPv6"}
+          - value: controller.service.externalIPs={"{{ worker_lb_ips_string_by_comma }}"}
