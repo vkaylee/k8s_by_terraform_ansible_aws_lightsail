@@ -14,13 +14,13 @@ This repo will create kubernetes cluster with some tools:
 - Cilium network
 - DualStack (ipv4 and ipv6)
 
-Add to service spec section
-```yaml
-ipFamilyPolicy: RequireDualStack
-ipFamilies: # The order is important, the first one will be shown on the service list
-- IPv4
-- IPv6
-```
+    Add to service spec section
+    ```yaml
+    ipFamilyPolicy: RequireDualStack
+    ipFamilies: # The order is important, the first one will be shown on the service list
+    - IPv4
+    - IPv6
+    ```
 - High available cluster with haproxy loadbalancer for masters, check stats `<loadbalancerIP>:9000/stats`
 - Metrics server `kubectl top pod`, `kubectl top node`
 
