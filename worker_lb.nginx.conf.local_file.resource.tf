@@ -44,8 +44,10 @@ stream {
     }
     upstream ipv6_worker_port_${worker_port}_servers {
         least_conn;
-        %{ for index, instance in aws_lightsail_instance.worker }
-        server [${instance.ipv6_addresses[0]}]:${worker_port} max_fails=2 fail_timeout=30s;
+        %{ for instance in aws_lightsail_instance.worker }
+        %{ for ipv6 in instance.ipv6_addresses }
+        server [${ipv6}]:${worker_port} max_fails=2 fail_timeout=30s;
+        %{ endfor }
         %{ endfor }
     }
     %{ endfor }
