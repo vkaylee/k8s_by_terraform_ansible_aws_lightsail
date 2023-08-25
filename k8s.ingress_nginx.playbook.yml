@@ -1,6 +1,9 @@
 - name: Install ingress-nginx by helm
   hosts: masters
   run_once: true
+  tags:
+    - addNode
+    - deleteNode
   tasks:
     # helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
     - name: Add ingress-nginx chart repo

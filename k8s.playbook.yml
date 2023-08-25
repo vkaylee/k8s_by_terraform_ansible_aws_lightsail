@@ -18,5 +18,8 @@
 - name: Install crictl tool to query pods and containers
   ansible.builtin.import_playbook: k8s_crictl_component.playbook.yml
 
+- name: Loadbalancer for workers
+  ansible.builtin.import_playbook: k8s.worker_lb.playbook.yml
+
 - name: Print some debug info
   ansible.builtin.import_playbook: k8s_debug_print.playbook.yml
