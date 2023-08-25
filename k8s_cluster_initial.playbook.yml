@@ -24,6 +24,7 @@
     service_cidr_v4: 10.16.0.0/12
     # 2001:db8:42:1::/108: 2001:0DB8:0042:0001:0000:0000:0000:0000 -> 2001:0DB8:0042:0001:0000:0000:000F:FFFF, 1.048.576 services
     service_cidr_v6: 2001:db8:42:1::/112
+    cluster_domain: cluster.internal # Default: cluster.local
   tasks:
     - name: Check kubelet info for sure the current node is not in any cluster
       ansible.builtin.stat:
@@ -48,7 +49,7 @@
           - --control-plane-endpoint={{ hostvars.master_lb_1.private_ip }}:{{ control_plane_endpoint_port }}
           - --apiserver-bind-port={{ apiserver_bind_port }}
           - --cri-socket=unix:///var/run/containerd/containerd.sock
-          - --service-dns-domain=cluster.internal
+          - --service-dns-domain={{ cluster_domain }}
           - --upload-certs
           - --apiserver-cert-extra-sans={{ hostvars.master_lb_1.ansible_host }}
           # If you want to use Cilium’s kube-proxy replacement, kubeadm needs to skip the kube-proxy deployment phase
@@ -128,6 +129,9 @@
           - value: ipam.operator.clusterPoolIPv6PodCIDRList={{ cilium_pod_network_cidr_v6 }}
           - value: ipam.operator.clusterPoolIPv4MaskSize=24
           - value: ipam.operator.clusterPoolIPv6MaskSize=112
+          - value: hubble.relay.enabled=true
+          - value: hubble.peerService.clusterDomain={{ cluster_domain }}
+          - value: hubble.ui.enabled=true
 
     # helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
     - name: Add metrics-server chart repo
