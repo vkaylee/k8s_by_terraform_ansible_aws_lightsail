@@ -228,8 +228,8 @@
         allow_change_held_packages: true
         allow_downgrade: false
       loop:
-        - { name: 'kubelet', version: '1.27.4*' }
-        - { name: 'kubeadm', version: '1.27.4*' }
+        - { name: 'kubelet', version: '1.27.*' }
+        - { name: 'kubeadm', version: '1.27.*' }
 
     - name: Hold
       become: true
@@ -375,7 +375,7 @@
         allow_change_held_packages: true
         allow_downgrade: false
       loop:
-        - { name: 'kubectl', version: '1.27.4*' }
+        - { name: 'kubectl', version: '1.27.*' }
 
     - name: Hold
       become: true
