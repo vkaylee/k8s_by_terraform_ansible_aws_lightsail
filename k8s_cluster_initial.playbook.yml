@@ -110,6 +110,7 @@
         chart_ref: cilium/cilium
         chart_version: 1.14.0
         release_namespace: cilium-network
+        create_namespace: true
         set_values:
           # Replace kube-proxy
           - value: kubeProxyReplacement=true
