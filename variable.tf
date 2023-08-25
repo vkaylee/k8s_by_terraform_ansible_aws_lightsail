@@ -84,7 +84,7 @@ variable master_lb_ports_map {
   default = {
     # Just change port if need
     # Kube API server
-    tcp_api_server = { protocol = "tcp", port = 6443, is_public = false, master_port_name = "tcp_api" },
+    tcp_api_server = { protocol = "tcp", port = 6443, is_public = true, master_port_name = "tcp_api" },
   }
 }
 
