@@ -1,0 +1,58 @@
+- name: Config kubectl on masters
+  hosts: masters
+  tags:
+    - addNode
+  tasks:
+    - name: Get stat of /etc/kubernetes/admin.conf
+      ansible.builtin.stat:
+        path: "/etc/kubernetes/admin.conf"
+      register: kubernetes_admin_conf
+
+    - name: Mkdir .kube directory on user's directory
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.kube"
+        state: "directory"
+        mode: "0755"
+
+    - name: Mkdir .kube directory on root's directory
+      become: true
+      ansible.builtin.file:
+        path: "$HOME/.kube"
+        state: "directory"
+        mode: "0755"
+
+    - name: Copies admin.conf to user's kube config
+      become: true
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ ansible_env.HOME }}/.kube/config"
+        mode: a+r
+        remote_src: true
+      when: kubernetes_admin_conf.stat.exists
+
+    - name: Copies admin.conf to root's kube config
+      become: true
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "$HOME/.kube/config"
+        mode: a+r
+        remote_src: true
+      when: kubernetes_admin_conf.stat.exists
+
+- name: Config kubectl on localhost
+  hosts: masters
+  run_once: true
+  tasks:
+    - name: Copy kubeconfig to localhost
+      become: true
+      ansible.builtin.fetch:
+        src: /etc/kubernetes/admin.conf
+        dest: kubeconfig
+        flat: true
+
+    - name: Replace private ip to public ip in kubeconfig
+      ansible.builtin.replace:
+        path: kubeconfig
+        regexp: "{{ hostvars.master_lb_1.private_ip }}"
+        replace: "{{ hostvars.master_lb_1.ansible_host }}"
+      delegate_to: localhost

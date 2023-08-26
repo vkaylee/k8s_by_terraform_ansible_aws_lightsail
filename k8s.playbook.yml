@@ -9,6 +9,9 @@
 - name: Masters join
   ansible.builtin.import_playbook: k8s_join_masters.playbook.yml
 
+- name: Kubectl configuration
+  ansible.builtin.import_playbook: k8s_config_kubectl.playbook.yml
+
 - name: Install metrics-server by helm
   ansible.builtin.import_playbook: k8s.cilium_network.playbook.yml
 

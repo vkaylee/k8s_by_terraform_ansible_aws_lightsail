@@ -38,23 +38,3 @@
       register: kubernetes_control_plane_join
       failed_when: kubernetes_control_plane_join.rc != 0
       changed_when: kubernetes_control_plane_join.rc == 0
-
-    - name: Get stat of /etc/kubernetes/admin.conf
-      ansible.builtin.stat:
-        path: "/etc/kubernetes/admin.conf"
-      register: kubernetes_admin_conf
-
-    - name: Mkdir .kube directory
-      ansible.builtin.file:
-        path: "$HOME/.kube"
-        state: "directory"
-        mode: "0755"
-
-    - name: Copies admin.conf to user's kube config
-      become: true
-      ansible.builtin.copy:
-        src: /etc/kubernetes/admin.conf
-        dest: "{{ ansible_env.HOME }}/.kube/config"
-        mode: a+r
-        remote_src: true
-      when: kubernetes_admin_conf.stat.exists
