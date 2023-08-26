@@ -9,22 +9,6 @@
 
 - name: Initialize the first control plane
   hosts: master_1
-  vars:
-    # 10.128.0.0/10: 10.128.0.0 -> 10.191.255.255, 4.194.304 pod ips. 16384 nodes.
-    # Apply Dual-stack support.
-    # Calculate network size by https://www.ipaddressguide.com/ipv6-cidr
-    pod_network_cidr_v4: 10.128.0.0/10
-    cilium_pod_network_cidr_v4: "{{ pod_network_cidr_v4 }}"
-    # 2001:db8:42:0::/56: 2001:0DB8:0042:0000:0000:0000:0000:0000 -> 2001:0DB8:0042:00FF:FFFF:FFFF:FFFF:FFFF
-    # 4.722.366.482.869.645.213.696 pod ips.
-    pod_network_cidr_v6: 2001:db8:42:0::/56
-    # 2001:db8:42:0::/106: 2001:0DB8:0042:0000:0000:0000:0000:0000 -> 2001:0DB8:0042:0000:0000:0000:003F:FFFF, 4.194.304 pod ips. 16384 nodes.
-    cilium_pod_network_cidr_v6: 2001:db8:42:0::/106
-    # 10.16.0.0/12: 10.16.0.0 -> 10.31.255.255, 1.048.576 services
-    service_cidr_v4: 10.16.0.0/12
-    # 2001:db8:42:1::/108: 2001:0DB8:0042:0001:0000:0000:0000:0000 -> 2001:0DB8:0042:0001:0000:0000:000F:FFFF, 1.048.576 services
-    service_cidr_v6: 2001:db8:42:1::/112
-    cluster_domain: cluster.internal # Default: cluster.local
   tasks:
     - name: Check kubelet info for sure the current node is not in any cluster
       ansible.builtin.stat:
@@ -95,43 +79,6 @@
         mode: a+r
         remote_src: true
       when: kubernetes_admin_conf.stat.exists
-
-    # helm repo add cilium https://helm.cilium.io/
-    - name: Add cilium chart repo
-      kubernetes.core.helm_repository:
-        name: cilium
-        repo_url: "https://helm.cilium.io/"
-
-    # https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/#kubeproxy-free
-    # helm install cilium cilium/cilium --version 1.14.0 --namespace kube-system
-    # https://docs.cilium.io/en/v1.14/helm-reference/
-    - name: Deploy cilium
-      kubernetes.core.helm:
-        name: cilium
-        chart_ref: cilium/cilium
-        chart_version: 1.14.0
-        release_namespace: cilium-network
-        create_namespace: true
-        set_values:
-          # Replace kube-proxy
-          - value: kubeProxyReplacement=true
-          # kubernetes API address
-          # Do not use kubernetes API address by ClusterIP because kube-proxy is gone this time
-          - value: k8sServiceHost={{ hostvars.master_lb_1.private_ip }}
-          - value: k8sServicePort={{ control_plane_endpoint_port }}
-          # Do so by providing new values to Helm and applying them to the existing installation.
-          # The agent pods will be gradually restarted.
-          - value: rollOutCiliumPods=true
-          - value: ipv4.enabled=true
-          - value: ipv6.enabled=true
-          - value: ipam.mode=cluster-pool
-          - value: ipam.operator.clusterPoolIPv4PodCIDRList={{ cilium_pod_network_cidr_v4 }}
-          - value: ipam.operator.clusterPoolIPv6PodCIDRList={{ cilium_pod_network_cidr_v6 }}
-          - value: ipam.operator.clusterPoolIPv4MaskSize=24
-          - value: ipam.operator.clusterPoolIPv6MaskSize=112
-          - value: hubble.relay.enabled=true
-          - value: hubble.peerService.clusterDomain={{ cluster_domain }}
-          - value: hubble.ui.enabled=true
 
     # helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
     - name: Add metrics-server chart repo
