@@ -1,0 +1,24 @@
+- name: Install metrics server to the cluster
+  hosts: masters
+  run_once: true
+  tasks:
+    # helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+    - name: Add metrics-server chart repo
+      kubernetes.core.helm_repository:
+        name: metrics-server
+        repo_url: "https://kubernetes-sigs.github.io/metrics-server/"
+
+    # helm install my-metrics-server metrics-server/metrics-server --version 3.11.0
+    - name: Deploy metrics-server
+      kubernetes.core.helm:
+        name: metrics-server
+        chart_ref: metrics-server/metrics-server
+        chart_version: 3.11.0
+        release_namespace: metrics-server
+        create_namespace: true
+        set_values:
+          # Do not verify the CA of serving certificates presented by Kubelets. For testing purposes only.
+          # Refer --kubelet-insecure-tls on https://github.com/kubernetes-sigs/metrics-server#configuration
+          # Refer args on https://artifacthub.io/packages/helm/metrics-server/metrics-server
+          # TODO: Bootstrap kubelet TLS https://kubernetes.io/docs/reference/access-authn-authz/kubelet-tls-bootstrapping/#client-and-serving-certificates
+          - value: args[0]=--kubelet-insecure-tls
