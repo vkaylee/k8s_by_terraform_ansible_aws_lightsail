@@ -57,7 +57,10 @@ terraform_func(){
     return $?
 }
 
-ANSIBLE_CONFIG="${working_dir}/ansible.cfg"
+ansible_playbook_func(){
+    ANSIBLE_CONFIG="${working_dir}/ansible.cfg" ansible-playbook --flush-cache "$@"
+    return $?
+}
 
 main(){
     case "${1}" in
@@ -98,7 +101,7 @@ main(){
             local count
             count=1
             while true; do
-                if ansible-playbook -i "${working_dir}/ansible.inventory.cfg" "${working_dir}/k8s.playbook.yml" --limit 'masters,master_lbs,workers,worker_lbs'; then
+                if ansible_playbook_func "${working_dir}/k8s.playbook.yml" --limit 'masters,master_lbs,workers,worker_lbs'; then
                     break 1
                 fi
                 # Give it 3 times to try
@@ -166,7 +169,7 @@ main(){
                     local count
                     count=1
                     while true; do
-                        if ! ansible-playbook -i "${working_dir}/ansible.inventory.cfg" "${working_dir}/k8s.playbook.yml" --limit "${ansibleLimit}" --tags addNode; then
+                        if ! ansible_playbook_func "${working_dir}/k8s.playbook.yml" --limit "${ansibleLimit}" --tags addNode; then
                             local count1
                             count1=1
                             while true; do
@@ -241,7 +244,7 @@ main(){
                         count=1
                         while true; do
                             if terraform_func apply -auto-approve ${terraformVarOptions}; then
-                                if ansible-playbook -i "${working_dir}/ansible.inventory.cfg" "${working_dir}/k8s.playbook.yml" --limit "worker_lbs" --tags deleteNode; then
+                                if ansible_playbook_func "${working_dir}/k8s.playbook.yml" --limit "worker_lbs" --tags deleteNode; then
                                     break 1
                                 fi
                             fi
@@ -296,7 +299,7 @@ main(){
             local count
             count=1
             while true; do
-                if ansible-playbook -i "${working_dir}/ansible.inventory.cfg" "${working_dir}/k8s.playbook.yml"; then
+                if ansible_playbook_func "${working_dir}/k8s.playbook.yml"; then
                     break 1
                 fi
                 # Give it 3 times to try
