@@ -6,8 +6,10 @@
 terraform.tfstate
 terraform.tfstate.backup
 # Personal files
-ansible.inventory.cfg
-master_lb.haproxy.cfg
-worker_lb.nginx.conf
+k8s.playbook/ansible.inventory.cfg
+k8s.playbook/master_lb.haproxy.cfg
+k8s.playbook/worker_lb.nginx.conf
+*.pem
+*.pub
 ssh.sh
 action.sh.lock

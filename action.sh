@@ -79,7 +79,7 @@ main(){
             fi
 
             # Create key
-            ssh-keygen -t rsa -b 4096 -C "your_email@example.com" -q -N "" -f "${working_dir}/tf_k8s"
+            ssh-keygen -t rsa -b 4096 -C "your_email@example.com" -q -N "" -f "${working_dir}/tf_k8s.pem"
             chmod 400 "${working_dir}/tf_k8s"*
             # Create infrastructure
             local count

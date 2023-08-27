@@ -1,5 +1,5 @@
 resource "local_file" "ansible_inventory" {
-  filename = "${path.module}/ansible.inventory.cfg"
+  filename = "${path.module}/k8s.playbook/ansible.inventory.cfg"
   depends_on = [ 
     aws_lightsail_instance.master,
     aws_lightsail_instance.master_lb,

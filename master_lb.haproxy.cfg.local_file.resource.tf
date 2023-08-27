@@ -1,5 +1,5 @@
 resource "local_file" "master_haproxy_cfg" {
-  filename = "${path.module}/master_lb.haproxy.cfg"
+  filename = "${path.module}/k8s.playbook/master_lb.haproxy.cfg"
   depends_on = [ 
     aws_lightsail_instance.master,
   ]
