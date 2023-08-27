@@ -126,12 +126,14 @@ main(){
             # Get current instances
             local master_count
             master_count=$(terraform_func state list | grep -oP "(?<=aws_lightsail_instance.master\[)\d+" | wc -l)
+            local master_lb_count
+            master_lb_count=$(terraform_func state list | grep -oP "(?<=aws_lightsail_instance.master_lb\[)\d+" | wc -l)
             local worker_count
             worker_count=$(terraform_func state list | grep -oP "(?<=aws_lightsail_instance.worker\[)\d+" | wc -l)
             local worker_lb_count
             worker_lb_count=$(terraform_func state list | grep -oP "(?<=aws_lightsail_instance.worker_lb\[)\d+" | wc -l)
             local currentTerraformVarOptions
-            currentTerraformVarOptions="-var="master_count=${master_count}" -var="worker_count=${worker_count}" -var="worker_lb_count=${worker_lb_count}""
+            currentTerraformVarOptions="-var="master_count=${master_count}" -var="master_lb_count=${master_lb_count}" -var="worker_count=${worker_count}" -var="worker_lb_count=${worker_lb_count}""
 
             local nodeRole
             # By default: nodeRole is worker
@@ -148,14 +150,14 @@ main(){
                     local ansibleLimit
                     ansibleLimit="master_1,worker_lbs,worker_$((worker_count +1))"
                     local terraformVarOptions
-                    terraformVarOptions="-var="master_count=${master_count}" -var="worker_count=$((worker_count+1))""
+                    terraformVarOptions="${currentTerraformVarOptions} -var="worker_count=$((worker_count+1))""
                     if [[ "${nodeRole}" == "master" ]]; then
                         # Must add master_lb to update loadbalancing configuration
                         ansibleLimit="master_1,master_lb_1,master_$((master_count +1))"
-                        terraformVarOptions="-var="master_count=$((master_count+1))" -var="worker_count=${worker_count}""
+                        terraformVarOptions="${currentTerraformVarOptions} -var="master_count=$((master_count+1))""
                     elif [[ "${nodeRole}" == "worker_lb" ]]; then
                         ansibleLimit="worker_lb_$((worker_lb_count +1))"
-                        terraformVarOptions="-var="master_count=${master_count}" -var="worker_count=${worker_count}" -var="worker_lb_count=$((worker_lb_count+1))""
+                        terraformVarOptions="${currentTerraformVarOptions} -var="worker_lb_count=$((worker_lb_count+1))""
                     fi
                     # Scale up infrastructure
                     local count
@@ -250,9 +252,9 @@ main(){
                             kubectl_func delete node "${node_name}"
                             # Scale down infrastructure
                             local terraformVarOptions
-                            terraformVarOptions="-var="master_count=${master_count}" -var="worker_count=$((worker_count-1))""
+                            terraformVarOptions="${currentTerraformVarOptions} -var="worker_count=$((worker_count-1))""
                             if [[ "${nodeRole}" == "master" ]]; then
-                                terraformVarOptions="-var="master_count=$((master_count-1))" -var="worker_count=${worker_count}""
+                                terraformVarOptions="${currentTerraformVarOptions} -var="master_count=$((master_count-1))""
                             fi
                             local count
                             count=1
@@ -277,7 +279,7 @@ main(){
                     elif [[ "${nodeRole}" == "worker_lb" ]]; then
                         # Scale down infrastructure
                         local terraformVarOptions
-                        terraformVarOptions="-var="master_count=${master_count}" -var="worker_count=${worker_count}" -var="worker_lb_count=$((worker_lb_count-1))""
+                        terraformVarOptions="${currentTerraformVarOptions} -var="worker_lb_count=$((worker_lb_count-1))""
                         local count
                         count=1
                         while true; do
