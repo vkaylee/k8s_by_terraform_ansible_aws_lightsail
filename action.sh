@@ -20,7 +20,7 @@ for command in ${needTools[@]}; do
 done
 working_dir="$(dirname $0)"
 thisScriptPath="${working_dir}/$(basename "$0")"
-
+sshKeyPath="${working_dir}/tf_k8s.pem"
 # Apply lock file to avoid multiple run in the same time
 # Due to the issue with terraform and ansible, ansible is depended on configuration file that is rendered by terraform
 # We just allow to run only one process at once
@@ -79,8 +79,8 @@ main(){
             fi
 
             # Create key
-            ssh-keygen -t rsa -b 4096 -C "your_email@example.com" -q -N "" -f "${working_dir}/tf_k8s.pem"
-            chmod 400 "${working_dir}/tf_k8s"*
+            ssh-keygen -t rsa -b 4096 -C "your_email@example.com" -q -N "" -f "${sshKeyPath}"
+            chmod 400 "${sshKeyPath}"*
             # Create infrastructure
             local count
             count=1
@@ -279,7 +279,7 @@ main(){
                     # Remove kubeconfig, created by ansible
                     rm -f "${working_dir}/kubeconfig"
                     # Remove key
-                    rm -f ${working_dir}/tf_k8s*
+                    rm -f ${sshKeyPath}*
 
                     break 1
                 fi
