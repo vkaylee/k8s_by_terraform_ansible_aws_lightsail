@@ -47,12 +47,12 @@
       become: true
       ansible.builtin.fetch:
         src: /etc/kubernetes/admin.conf
-        dest: kubeconfig
+        dest: ../kubeconfig
         flat: true
 
     - name: Replace private ip to public ip in kubeconfig
       ansible.builtin.replace:
-        path: kubeconfig
+        path: ../kubeconfig
         regexp: "{{ hostvars.master_lb_1.private_ip }}"
         replace: "{{ hostvars.master_lb_1.ansible_host }}"
       delegate_to: localhost
