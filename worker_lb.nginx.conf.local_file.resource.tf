@@ -56,13 +56,13 @@ stream {
     server {
         listen  ${port_object.port} ${port_object.protocol=="udp" ? "udp" : ""};
         proxy_pass    ipv4_worker_port_${port_object.forward_port}_servers;
-        proxy_timeout 3s;
+        proxy_timeout 10m;
         proxy_connect_timeout 1s;
     }
     server {
         listen  [::]:${port_object.port}  ${port_object.protocol=="udp" ? "udp" : ""};
         proxy_pass    ipv6_worker_port_${port_object.forward_port}_servers;
-        proxy_timeout 3s;
+        proxy_timeout 10m;
         proxy_connect_timeout 1s;
     }
     %{ endfor }
