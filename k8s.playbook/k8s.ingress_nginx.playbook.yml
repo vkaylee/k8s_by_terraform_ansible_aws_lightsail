@@ -39,6 +39,25 @@
                 labelSelector:
                   matchLabels:
                     app.kubernetes.io/name: ingress-nginx
+            autoscaling:
+              behavior:
+                scaleDown:
+                  policies:
+                  - type: Pods
+                    value: 1
+                    periodSeconds: 60
+                  selectPolicy: Min
+                  stabilizationWindowSeconds: 300
+                scaleUp:
+                  policies:
+                  - type: Pods
+                    value: 5
+                    periodSeconds: 5
+                  - type: Percent
+                    value: 10
+                    periodSeconds: 60
+                  selectPolicy: Max
+                  stabilizationWindowSeconds: 0
 
     # Because ingress-nginx controller pod is scheduled on workers node that's why we need to install after having a worker node
     # https://artifacthub.io/packages/helm/ingress-nginx/ingress-nginx
@@ -54,10 +73,12 @@
           - "{{ ansible_env.HOME }}/helm-ingress-nginx-values.yml"
         set_values:
           - value: controller.autoscaling.enabled=true
-          - value: controller.autoscaling.maxReplicas="{{ groups['workers'] | length * 3 }}"
+          - value: controller.autoscaling.maxReplicas="{{ groups['workers'] | length * 4 }}"
           - value: controller.autoscaling.minReplicas="{{ groups['workers'] | length }}"
+          - value: controller.autoscaling.targetCPUUtilizationPercentage=50
+          - value: controller.autoscaling.targetMemoryUtilizationPercentage=80
           - value: controller.resources.requests.cpu="125m"
-          - value: controller.resources.requests.memory="250Mi"
+          - value: controller.resources.requests.memory="150Mi"
           - value: controller.service.nodePorts.http="{{ worker_http_port_for_ingress }}"
           - value: controller.service.nodePorts.https="{{ worker_https_port_for_ingress }}"
           - value: controller.service.ipFamilyPolicy="RequireDualStack"
