@@ -47,7 +47,7 @@ This repo will create kubernetes cluster with some tools:
 ### Manual steps
 - Create ssh key pair
 ```shell
-    ssh-keygen -t rsa -b 4096 -C "your_email@example.com" -q -N "" -f tf_k8s
+    ssh-keygen -t rsa -b 4096 -C "your_email@example.com" -q -N "" -f tf_k8s.pem
     chmod 400 tf_k8s*
 ```
 - Update terraform variables in `variable.tf` as your need
@@ -97,12 +97,12 @@ Example output
 ```
 - Or do step by step
 ```shell
-    ansible-playbook k8s_components_installer.playbook.yml
-    ansible-playbook k8s_cluster_initial.playbook.yml
-    ansible-playbook k8s_join_masters.playbook.yml
-    ansible-playbook k8s_join_workers.playbook.yml
-    ansible-playbook k8s_debug_print.playbook.yml
-    ansible-playbook k8s_crictl_component.playbook.yml
+    ansible-playbook k8s.playbook/k8s_components_installer.playbook.yml
+    ansible-playbook k8s.playbook/k8s_cluster_initial.playbook.yml
+    ansible-playbook k8s.playbook/k8s_join_masters.playbook.yml
+    ansible-playbook k8s.playbook/k8s_join_workers.playbook.yml
+    ansible-playbook k8s.playbook/k8s_debug_print.playbook.yml
+    ansible-playbook k8s.playbook/k8s_crictl_component.playbook.yml
 ```
 
 - Kubeconfig path, override in kubectl by option `--kubeconfig` or export `KUBECONFIG` environment
