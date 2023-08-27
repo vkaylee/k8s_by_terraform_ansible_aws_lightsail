@@ -30,8 +30,8 @@ This repo will create kubernetes cluster with some tools:
 ## Get started
 ### Automatic feature
 - `./action.sh init` Create the infrastructure and install a cluster on it
-- `./action.sh scale up <master or worker>` Add more node to cluster, default is worker node
-- `./action.sh scale down <master or worker>` Remove one node from cluster, default is worker node
+- `./action.sh scale up <master or worker or worker_lb>` Add more node to cluster, default is worker node
+- `./action.sh scale down <master or worker or worker_lb>` Remove one node from cluster, default is worker node
 - `./action.sh destroy` Destroy the infrastructure
 - `./action.sh refresh` Keep the cluster match with the inventory
 - `./action.sh` to choose among options
@@ -41,8 +41,10 @@ This repo will create kubernetes cluster with some tools:
      -> init
         refresh
         scale-down
+        scale-down-worker_lb
         scale-up
         scale-up-master
+        scale-up-worker_lb
     ```
 ### Manual steps
 - Create ssh key pair

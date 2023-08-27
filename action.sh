@@ -62,6 +62,11 @@ ansible_playbook_func(){
     return $?
 }
 
+ansible_inventory_func(){
+    ANSIBLE_CONFIG="${working_dir}/ansible.cfg" ansible-inventory "$@"
+    return $?
+}
+
 main(){
     case "${1}" in
         init)
@@ -123,14 +128,18 @@ main(){
             master_count=$(terraform_func state list | grep -oP "(?<=aws_lightsail_instance.master\[)\d+" | wc -l)
             local worker_count
             worker_count=$(terraform_func state list | grep -oP "(?<=aws_lightsail_instance.worker\[)\d+" | wc -l)
+            local worker_lb_count
+            worker_lb_count=$(terraform_func state list | grep -oP "(?<=aws_lightsail_instance.worker_lb\[)\d+" | wc -l)
             local currentTerraformVarOptions
-            currentTerraformVarOptions="-var="master_count=${master_count}" -var="worker_count=${worker_count}""
+            currentTerraformVarOptions="-var="master_count=${master_count}" -var="worker_count=${worker_count}" -var="worker_lb_count=${worker_lb_count}""
 
             local nodeRole
             # By default: nodeRole is worker
             nodeRole="worker"
             if [[ "${2}" == "master" ]]; then
                 nodeRole="master"
+            elif [[ "${2}" == "worker_lb" ]]; then
+                nodeRole="worker_lb"
             fi
 
             case "${1}" in
@@ -144,6 +153,9 @@ main(){
                         # Must add master_lb to update loadbalancing configuration
                         ansibleLimit="master_1,master_lb_1,master_$((master_count +1))"
                         terraformVarOptions="-var="master_count=$((master_count+1))" -var="worker_count=${worker_count}""
+                    elif [[ "${nodeRole}" == "worker_lb" ]]; then
+                        ansibleLimit="worker_lb_$((worker_lb_count +1))"
+                        terraformVarOptions="-var="master_count=${master_count}" -var="worker_count=${worker_count}" -var="worker_lb_count=$((worker_lb_count+1))""
                     fi
                     # Scale up infrastructure
                     local count
@@ -214,39 +226,63 @@ main(){
                     fi
                     
                     local private_ip
-                    private_ip=$(ansible-inventory -i "${working_dir}/ansible.inventory.cfg" --host "${nodeRole}_${instance_count}" | jq .private_ip | tr -d '"')
-                    local node_name
-                    while [[ -z "${node_name}" ]]; do
-                        node_name=$(kubectl_func get node -o wide | grep "${private_ip}" | awk '{ print $1 }')
-                        if [[ -n "${node_name}" ]]; then
-                            break 1
-                        fi
-                        
-                        # when the node is in inventory but not in kubernetes nodes
-                        # Don't forget to put internalCallMark to notify this call is from internal
-                        eval "${working_dir}/$(basename "$0") ${internalCallMark} refresh"
-                    done
-                    
+                    private_ip=$(ansible_inventory_func --host "${nodeRole}_${instance_count}" | jq .private_ip | tr -d '"')
 
-                    # Kubernetes cordon
-                    kubectl_func cordon "${node_name}"
-                    # Kubernetes drain
-                    if kubectl_func drain "${node_name}" --ignore-daemonsets; then
-                        # Kubernetes delete node
-                        kubectl_func delete node "${node_name}"
+                    if [[ "${nodeRole}" == "worker" ]]; then
+                        local node_name
+                        while [[ -z "${node_name}" ]]; do
+                            node_name=$(kubectl_func get node -o wide | grep "${private_ip}" | awk '{ print $1 }')
+                            if [[ -n "${node_name}" ]]; then
+                                break 1
+                            fi
+                            
+                            # when the node is in inventory but not in kubernetes nodes
+                            # Don't forget to put internalCallMark to notify this call is from internal
+                            eval "${working_dir}/$(basename "$0") ${internalCallMark} refresh"
+                        done
+                        
+
+                        # Kubernetes cordon
+                        kubectl_func cordon "${node_name}"
+                        # Kubernetes drain
+                        if kubectl_func drain "${node_name}" --ignore-daemonsets; then
+                            # Kubernetes delete node
+                            kubectl_func delete node "${node_name}"
+                            # Scale down infrastructure
+                            local terraformVarOptions
+                            terraformVarOptions="-var="master_count=${master_count}" -var="worker_count=$((worker_count-1))""
+                            if [[ "${nodeRole}" == "master" ]]; then
+                                terraformVarOptions="-var="master_count=$((master_count-1))" -var="worker_count=${worker_count}""
+                            fi
+                            local count
+                            count=1
+                            while true; do
+                                if terraform_func apply -auto-approve ${terraformVarOptions}; then
+                                    if ansible_playbook_func "${working_dir}/k8s.playbook.yml" --limit "worker_lbs" --tags deleteNode; then
+                                        break 1
+                                    fi
+                                fi
+                                # Give it 3 times to try
+                                if (( $(echo "${count} >= 3" | bc -l) )); then
+                                    return 1
+                                fi
+                                
+                                ((count++))
+                                sleep 1
+                            done
+                        fi
+
+                        kubectl_func get nodes -o wide
+                        return $?
+                    elif [[ "${nodeRole}" == "worker_lb" ]]; then
                         # Scale down infrastructure
                         local terraformVarOptions
-                        terraformVarOptions="-var="master_count=${master_count}" -var="worker_count=$((worker_count-1))""
-                        if [[ "${nodeRole}" == "master" ]]; then
-                            terraformVarOptions="-var="master_count=$((master_count-1))" -var="worker_count=${worker_count}""
-                        fi
+                        terraformVarOptions="-var="master_count=${master_count}" -var="worker_count=${worker_count}" -var="worker_lb_count=$((worker_lb_count-1))""
                         local count
                         count=1
                         while true; do
                             if terraform_func apply -auto-approve ${terraformVarOptions}; then
-                                if ansible_playbook_func "${working_dir}/k8s.playbook.yml" --limit "worker_lbs" --tags deleteNode; then
-                                    break 1
-                                fi
+                                break 1
                             fi
                             # Give it 3 times to try
                             if (( $(echo "${count} >= 3" | bc -l) )); then
@@ -256,10 +292,9 @@ main(){
                             ((count++))
                             sleep 1
                         done
+                    else
+                        return 1
                     fi
-
-                    kubectl_func get nodes -o wide
-                    return $?
                 ;;
                 *)
                     echo "Please choose:"
@@ -323,8 +358,10 @@ main(){
             #### Declare the list of actions ####
             actions+=("init")
             actions+=("scale up")
-            actions+=("scale up master")
             actions+=("scale down")
+            actions+=("scale up master")
+            actions+=("scale up worker_lb")
+            actions+=("scale down worker_lb")
             actions+=("refresh")
             actions+=("destroy")
             #####################################
