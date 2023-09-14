@@ -47,11 +47,6 @@ This repo will create kubernetes cluster with some tools:
         scale-up-worker_lb
     ```
 ### Manual steps
-- Create ssh key pair
-```shell
-    ssh-keygen -t rsa -b 4096 -C "your_email@example.com" -q -N "" -f tf_k8s.pem
-    chmod 400 tf_k8s*
-```
 - Update terraform variables in `variable.tf` as your need
 - Initial terraform
 ```shell

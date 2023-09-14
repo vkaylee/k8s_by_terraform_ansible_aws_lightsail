@@ -16,7 +16,7 @@ variable "default_name" {
 }
 
 variable "ssh_key_path" {
-  default = "./tf_k8s.pem"
+  default = "./tf_k8s"
 }
 
 # Reference terraform aws lightsail

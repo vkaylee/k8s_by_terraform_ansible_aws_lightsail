@@ -8,7 +8,7 @@ resource "local_file" "ssh_sh" {
   ]
   file_permission = "0777" # It does not actually work, got -rwxr-xr-x.
   content  = templatefile("${path.module}/ssh.sh.tftpl", {
-    sshkeypath = "${var.ssh_key_path}",
+    sshkeypath = "${var.ssh_key_path}.pem",
     myarray = join(" ", flatten([for nodes in [
         aws_lightsail_instance.master,
         aws_lightsail_instance.master_lb,
