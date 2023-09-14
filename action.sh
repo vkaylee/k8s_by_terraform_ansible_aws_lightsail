@@ -6,7 +6,6 @@ needTools+=( ansible )
 needTools+=( ansible-playbook )
 needTools+=( ansible-inventory )
 needTools+=( kubectl )
-needTools+=( ssh-keygen )
 needTools+=( jq )
 needTools+=( awk )
 needTools+=( grep )
@@ -83,9 +82,6 @@ main(){
                 return 1
             fi
 
-            # Create key
-            ssh-keygen -t rsa -b 4096 -C "your_email@example.com" -q -N "" -f "${sshKeyPath}"
-            chmod 400 "${sshKeyPath}"*
             # Create infrastructure
             local count
             count=1
