@@ -15,9 +15,6 @@
         update_cache: true
       with_items:
         - curl
-        - ca-certificates
-        - gnupg
-        - apt-transport-https
         - python3
         - python3-pip
         - netcat # Tool to check ports
@@ -112,11 +109,6 @@
   tags:
     - addNode
   handlers:
-    - name: Restart containerd
-      become: true
-      ansible.builtin.service:
-        name: containerd
-        state: restarted
     - name: Restart kubelet
       become: true
       ansible.builtin.service:
@@ -175,50 +167,6 @@
         - kubelet
         - kubeadm
 
-    - name: Add Docker’s official GPG key
-      become: true
-      ansible.builtin.get_url:
-        url: "https://download.docker.com/linux/debian/gpg"
-        dest: /etc/apt/trusted.gpg.d/debian_docker.asc
-        mode: a+r
-        force: true
-
-    - name: Add docker Source
-      become: true
-      ansible.builtin.apt_repository:
-        repo: "deb [signed-by=/etc/apt/trusted.gpg.d/debian_docker.asc] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
-        state: present
-        filename: docker
-
-    - name: Install containerd.io
-      become: true
-      ansible.builtin.apt:
-        name: containerd.io=1.6.*
-        state: present
-        update_cache: true
-      notify:
-        - Restart kubelet
-
-    # It's just a workaround to let kubeadm works
-    # - name: Remove /etc/containerd/config.toml
-    #   ansible.builtin.file:
-    #     state: absent
-    #     path: /etc/containerd/config.toml
-    #   notify:
-    #     - Restart containerd
-    - name: Upload /etc/containerd/config.toml
-      become: true
-      ansible.builtin.template:
-        dest: /etc/containerd/config.toml
-        src: etc.containerd.config.toml
-        mode: a+r
-      notify:
-        - Restart containerd
-    # - name: Generate default containerd configuration
-    #   shell: containerd config default > /etc/containerd/config.toml
-    #   notify:
-    #     - Restart containerd
-
     - name: Add overlay, br_netfilter module to kernel
       become: true
       community.general.modprobe:
@@ -227,6 +175,16 @@
       loop:
         - overlay
         - br_netfilter
+
+    - name: Add overlay, br_netfilter module to kernel (at boot time)
+      become: true
+      ansible.builtin.blockinfile:
+        path: "/etc/modules-load.d/modules.conf"
+        block: |
+          overlay
+          br_netfilter
+        create: true
+        mode: u+r
 
     - name: Get stat of /etc/sysctl.d/99-kubernetes-cri.conf
       ansible.builtin.stat:
@@ -256,7 +214,6 @@
         - { key: 'net.ipv6.conf.all.forwarding', value: '1' }
       notify:
         - Apply sysctl settings
-        - Restart containerd
 
     - name: Disable swap
       become: true
@@ -265,18 +222,6 @@
         sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
       register: my_output # <- Registers the command output.
       changed_when: my_output.rc != 0 # <- Uses the return code to define when the task has changed.
-
-    - name: Add conf for containerd
-      become: true
-      ansible.builtin.blockinfile:
-        path: "/etc/modules-load.d/containerd.conf"
-        block: |
-          overlay
-          br_netfilter
-        create: true
-        mode: u+r
-      notify:
-        - Restart containerd
 
 - name: Install some components on masters
   hosts: masters
