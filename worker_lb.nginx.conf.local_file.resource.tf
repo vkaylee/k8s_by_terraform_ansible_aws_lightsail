@@ -1,5 +1,5 @@
 resource "local_file" "worker_nginx_conf" {
-  filename = "${path.module}/k8s.playbook/worker_lb.nginx.conf"
+  filename = "${path.module}/ansible_dir/worker_lb.nginx.conf"
   depends_on = [ 
     aws_lightsail_instance.worker,
   ]

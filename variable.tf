@@ -93,6 +93,7 @@ variable "worker_count" {
 }
 
 variable "worker_blueprint_id" {
+  # amazon_linux_2023
   default = "debian_11"
 }
 variable "worker_bundle_id" {
@@ -119,6 +120,7 @@ variable "worker_lb_count" {
 }
 
 variable "worker_lb_blueprint_id" {
+  # amazon_linux_2023
   default = "debian_11"
 }
 variable "worker_lb_bundle_id" {

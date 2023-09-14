@@ -6,9 +6,9 @@
 terraform.tfstate
 terraform.tfstate.backup
 # Personal files
-k8s.playbook/ansible.inventory.cfg
-k8s.playbook/master_lb.haproxy.cfg
-k8s.playbook/worker_lb.nginx.conf
+ansible_dir/ansible.inventory.cfg
+ansible_dir/master_lb.haproxy.cfg
+ansible_dir/worker_lb.nginx.conf
 *.pem
 *.pub
 ssh.sh
