@@ -76,17 +76,9 @@ Example output
         tf_k8s_worker_3-172.26.34.73-admin@18.141.211.57
         tf_k8s_worker_lb_1-172.26.8.148-admin@54.179.170.137
 
-- Install some ansible modules
+- Install some ansible requirements
 ```shell
-    # Modules:
-    # https://docs.ansible.com/ansible/latest/collections/kubernetes/core/k8s_module.html
-    # - kubernetes.core.k8s
-    # - kubernetes.core.kubectl
-    # https://docs.ansible.com/ansible/latest/collections/kubernetes/core/helm_module.html
-    # - kubernetes.core.helm
-    # - kubernetes.core.helm_repository
-    # To be sure python pip module is installed in all hosts
-    ansible-galaxy collection install kubernetes.core
+    ansible-galaxy install -r requirements.ansible-galaxy.yml
 ```
 - Automatically install kubernetes cluster (all in one)
 ```shell

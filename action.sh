@@ -66,6 +66,11 @@ ansible_inventory_func(){
     return $?
 }
 
+ansible_galaxy_func(){
+    ANSIBLE_CONFIG="${working_dir}/ansible.cfg" ansible-galaxy "$@"
+    return $?
+}
+
 main(){
     case "${1}" in
         init)
@@ -97,6 +102,9 @@ main(){
                 ((count++))
                 sleep 1
             done
+
+            # Install ansible requirements
+            ansible_galaxy_func install -r "${working_dir}/requirements.ansible-galaxy.yml"
             
             # Install cluster
             local count
