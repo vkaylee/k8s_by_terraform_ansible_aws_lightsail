@@ -1,5 +1,8 @@
 # https://docs.ansible.com/ansible/latest/reference_appendices/special_variables.html
 
+- name: Install monitoring stack
+  ansible.builtin.import_playbook: ansible_dir/grafana_prometheus_node-exporter.playbook.yml
+
 - name: Install all components for every node
   ansible.builtin.import_playbook: ansible_dir/k8s_components_installer.playbook.yml
 

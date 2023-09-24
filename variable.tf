@@ -72,6 +72,8 @@ variable master_lb_ports {
     ssh = { protocol = "tcp", port = 22, is_public = true},
     # Port for haproxy stats
     tcp_stats = { protocol = "tcp", port = 9000, is_public = true},
+    # Port for grafana ui
+    grafana_ui = { protocol = "tcp", port = 3000, is_public = true},
   }
 }
 variable master_lb_ports_map {

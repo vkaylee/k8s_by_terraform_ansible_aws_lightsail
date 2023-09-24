@@ -27,6 +27,17 @@ This repo will create kubernetes cluster with some tools:
     ```shell
     kubectl describe svc ingress-nginx-controller -n ingress-nginx
     ```
+- Monitoring stack (`node-exporter`, `prometheus`)
+    ```txt
+    node-exporter (Collect data in node and export it)
+    prometheus (Data source, collect data from node-exporter)
+    grafana (Perform data source by graph)
+    ```
+    - Use master loadbalancing node to install `prometheus` and `grafana`
+    - Grafana UI: `<mastersLoadbalancerIP>:3000/` with default user: `admin` and password: `123456`
+    - Grafana configuration:
+        - Add Prometheus data source url `http://localhost:9090`
+        - Import grafana dashboard ID: `1860` (Node Exporter Full)
 ## Get started
 ### Automatic feature
 - `./action.sh init` Create the infrastructure and install a cluster on it

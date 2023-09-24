@@ -1,0 +1,28 @@
+- name: Install node-exporter
+  hosts: all
+  become: true
+  tags:
+    - addNode
+  roles:
+    - node-exporter
+
+- name: Install prometheus
+  # To save resource, use master_lbs for it along with haproxy
+  hosts: master_lbs
+  become: true
+  tags:
+    - addNode
+    - deleteNode
+  roles:
+    - role: prometheus
+      prometheus_node_exporter_group: "all"
+
+- name: Install grafana
+  # To save resource, use master_lbs for it along with haproxy
+  hosts: master_lbs
+  become: true
+  tags:
+    - addNode
+    - deleteNode
+  roles:
+    - grafana
