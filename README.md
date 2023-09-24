@@ -84,15 +84,7 @@ Example output
 ```shell
     ansible-playbook k8s.playbook.yml
 ```
-- Or do step by step
-```shell
-    ansible-playbook ansible_dir/k8s_components_installer.playbook.yml
-    ansible-playbook ansible_dir/k8s_cluster_initial.playbook.yml
-    ansible-playbook ansible_dir/k8s_join_masters.playbook.yml
-    ansible-playbook ansible_dir/k8s_join_workers.playbook.yml
-    ansible-playbook ansible_dir/k8s_debug_print.playbook.yml
-    ansible-playbook ansible_dir/k8s_crictl_component.playbook.yml
-```
+- Or do step by step to run playbooks in the ansible dir. Check orderd list in k8s.playbook.yml
 
 - Kubeconfig path, override in kubectl by option `--kubeconfig` or export `KUBECONFIG` environment
     - In masters: `~/.kube/config` or `/etc/kubernetes/admin.conf`
