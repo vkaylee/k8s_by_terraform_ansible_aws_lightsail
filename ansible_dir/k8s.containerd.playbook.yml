@@ -1,0 +1,12 @@
+- name: Install containerd.io
+  hosts: masters,workers
+  become: true
+  gather_facts: true
+  tags:
+    - addNode
+  roles:
+    - role: geerlingguy.containerd
+      containerd_package: containerd.io=1.6.*
+      containerd_package_state: present
+      containerd_config_default_write: true
+      containerd_config_cgroup_driver_systemd: true
