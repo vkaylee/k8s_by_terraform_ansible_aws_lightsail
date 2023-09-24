@@ -1,5 +1,6 @@
 - name: Config kubectl on masters
   hosts: masters
+  gather_facts: true
   tags:
     - addNode
   tasks:

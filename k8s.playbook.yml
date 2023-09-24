@@ -6,6 +6,7 @@
 - name: Install containerd.io
   hosts: masters,workers
   become: true
+  gather_facts: true
   tags:
     - addNode
   roles:
