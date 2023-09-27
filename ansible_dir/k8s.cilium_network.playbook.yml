@@ -15,8 +15,8 @@
       kubernetes.core.helm:
         name: cilium
         chart_ref: cilium/cilium
-        chart_version: 1.14.0
-        release_namespace: cilium-network
+        chart_version: 1.14.2
+        release_namespace: kube-system
         create_namespace: true
         set_values:
           # Replace kube-proxy
@@ -38,3 +38,19 @@
           - value: hubble.relay.enabled=true
           - value: hubble.peerService.clusterDomain={{ cluster_domain }}
           - value: hubble.ui.enabled=true
+          # * Other features
+          # ** Uncomment and re-deploy to apply
+          # ** We should manually restart
+          # ** kubectl -n kube-system rollout restart deployment/cilium-operator
+          # ** kubectl -n kube-system rollout restart ds/cilium
+          # * Feature: Ingress controller support https://docs.cilium.io/en/stable/network/servicemesh/ingress/#gs-ingress
+          # ** It currently does not support dualstack
+          # - value: ingressController.enabled=true
+          # - value: ingressController.loadbalancerMode=shared
+          # * Feature: Egress gateway https://docs.cilium.io/en/stable/network/egress-gateway/
+          # - value: egressGateway.enabled=true
+          # - value: bpf.masquerade=true
+          # * Feature: Enable support for Gateway API in cilium This will automatically set enable-envoy-config as well.
+          # ** Refer: https://docs.cilium.io/en/stable/network/servicemesh/gateway-api/gateway-api/#cilium-gateway-api-support
+          # ** It currently does not support dualstack
+          # - value: gatewayAPI.enabled=true
