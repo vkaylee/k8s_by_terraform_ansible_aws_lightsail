@@ -1,6 +1,8 @@
 - name: Install ingress-nginx by helm
   hosts: masters
   run_once: true
+  # Pay attension: Garther fact under a normal user to take path of normal user ansible_env.HOME
+  gather_facts: true
   tags:
     - addNode
     - deleteNode
