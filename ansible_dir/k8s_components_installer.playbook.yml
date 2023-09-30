@@ -225,6 +225,7 @@
 
 - name: Install some components on masters
   hosts: masters
+  gather_facts: true
   tags:
     - addNode
   tasks:
@@ -245,6 +246,33 @@
         remote_src: true
       args:
         creates: /usr/local/bin/helm
+
+    - name: Apt Install git
+      become: true
+      when: ansible_pkg_mgr == "apt"
+      ansible.builtin.apt:
+        name: git
+        state: present
+        update_cache: true
+
+    - name: Yum Install git
+      become: true
+      when: ansible_pkg_mgr == "yum"
+      ansible.builtin.apt:
+        name: git
+        state: present
+
+    - name: Dnf Install git
+      become: true
+      when: ansible_pkg_mgr == "dnf"
+      ansible.builtin.apt:
+        name: git
+        state: present
+
+    - name: Install Helm Diff
+      kubernetes.core.helm_plugin:
+        plugin_path: "https://github.com/databus23/helm-diff"
+        state: present
 
     - name: Apt install kubectl
       become: true
