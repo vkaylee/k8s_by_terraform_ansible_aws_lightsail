@@ -4,7 +4,63 @@
   tags:
     - addNode
   tasks:
-    # https://longhorn.io/docs/archives/0.8.0/install/requirements/
+    # https://longhorn.io/docs/1.5.1/deploy/install/#installation-requirements
+    - name: Apt Install list of common packages
+      become: true
+      when: ansible_pkg_mgr == "apt"
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: true
+      with_items:
+        - curl
+        - util-linux # findmnt
+        - grep
+        - gawk
+        - fdisk # blkid, lsblk
+
+    - name: Apt Install list of common packages
+      become: true
+      when: ansible_pkg_mgr == "yum"
+      ansible.builtin.yum:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - curl
+        - grep
+        - gawk
+        - util-linux # findmnt, blkid, lsblk
+
+    - name: Dnf Install list of common packages
+      become: true
+      when: ansible_pkg_mgr == "dnf"
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - curl
+        - grep
+        - gawk
+        - util-linux # findmnt, blkid, lsblk
+
+    # https://longhorn.io/docs/1.5.1/deploy/install/#installing-open-iscsi
+    - name: Add iscsi_tcp module to kernel
+      become: true
+      community.general.modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - iscsi_tcp
+
+    - name: Add iscsi_tcp module to kernel (at boot time)
+      become: true
+      ansible.builtin.blockinfile:
+        path: "/etc/modules-load.d/iscsi.conf"
+        block: |
+          iscsi_tcp
+        create: true
+        mode: u+r
+
     - name: Apt Install open-iscsi
       become: true
       when: ansible_pkg_mgr == "apt"
