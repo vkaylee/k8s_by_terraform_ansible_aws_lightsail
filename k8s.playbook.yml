@@ -9,6 +9,9 @@
 - name: Install containerd.io
   ansible.builtin.import_playbook: ansible_dir/k8s.containerd.playbook.yml
 
+- name: Longhorn prepare
+  ansible.builtin.import_playbook: ansible_dir/longhorn_prepare.playbook.yml
+
 - name: Init cluster
   ansible.builtin.import_playbook: ansible_dir/k8s_cluster_initial.playbook.yml
 
@@ -30,8 +33,8 @@
 - name: Install ingress-nginx by helm
   ansible.builtin.import_playbook: ansible_dir/k8s.ingress_nginx.playbook.yml
 
-- name: Install longhorn storage by helm
-  ansible.builtin.import_playbook: ansible_dir/k8s.longhorn_storage.playbook.yml
+- name: Deploy longhorn
+  ansible.builtin.import_playbook: ansible_dir/longhorn_deploy.playbook.yml
 
 - name: Install crictl tool to query pods and containers
   ansible.builtin.import_playbook: ansible_dir/k8s_crictl_component.playbook.yml
