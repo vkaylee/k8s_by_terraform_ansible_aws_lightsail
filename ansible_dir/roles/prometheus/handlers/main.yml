@@ -1,12 +1,13 @@
 ---
 # handlers file for roles/prometheus
-- name: restart_prometheus
+- name: Restart_prometheus
   ansible.builtin.systemd:
     name: prometheus
     state: restarted
     enabled: true
     daemon_reload: true
-- name: reload_prometheus
+
+- name: Reload_prometheus
   ansible.builtin.uri:
     url: http://localhost:9090/-/reload
     method: POST
