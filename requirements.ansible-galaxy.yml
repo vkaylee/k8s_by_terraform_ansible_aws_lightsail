@@ -18,4 +18,9 @@ collections:
   - name: kubernetes.core
     version: ">=2.4.0"
     source: https://galaxy.ansible.com
+  # https://galaxy.ansible.com/ui/repo/published/ansible/posix/?extIdCarryOver=true&sc_cid=701f2000001OH7YAAW
+  # - ansible.posix.sysctl
+  - name: ansible.posix
+    version: ">=1.5.4"
+    source: https://galaxy.ansible.com
 
